@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>PharmaCam Kurulum ve Kullanım Kılavuzu</title>
+<style>
+@page { size: A4; margin: 16mm 15mm 18mm; }
+@page :first { margin: 0; }
+:root { --brand: #0f8a5f; --brand-d: #0b6b49; --soft: #e3f3ec; --ink: #1d2b36; --muted: #5d6c78; --line: #dfe7e3; --s1: #2a78d6; --warn: #b57e00; --bad: #d03b3b; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; color: var(--ink); font: 10.4pt/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+h1, h2, h3 { line-height: 1.2; }
+h1.chap { font-size: 21pt; color: var(--brand-d); margin: 0 0 4mm; padding-bottom: 2.5mm; border-bottom: 2px solid var(--brand); break-before: page; }
+h1.chap .n { display: inline-block; min-width: 11mm; color: var(--brand); }
+h2 { font-size: 13.5pt; margin: 6mm 0 2mm; color: var(--ink); }
+h3 { font-size: 11pt; margin: 4mm 0 1.5mm; }
+p { margin: 0 0 2.5mm; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+li { margin: 0 0 1mm; }
+code, .mono { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9pt; }
+code { background: #f1f4f3; padding: .3mm 1.2mm; border-radius: 1mm; }
+pre { background: #13201b; color: #dff5ea; padding: 3mm 4mm; border-radius: 2mm; font: 8.8pt/1.45 "SF Mono", Menlo, Consolas, monospace; white-space: pre-wrap; margin: 0 0 3mm; break-inside: avoid; }
+pre .c { color: #8fb3a3; }
+table { width: 100%; border-collapse: collapse; margin: 0 0 4mm; font-size: 9.4pt; break-inside: auto; }
+th, td { border-bottom: 1px solid var(--line); padding: 1.6mm 2mm; text-align: left; vertical-align: top; }
+th { background: var(--soft); color: var(--ink); font-weight: 650; }
+tr { break-inside: avoid; }
+figure { margin: 2mm 0 5mm; break-inside: avoid; text-align: center; }
+figure img, figure svg { max-width: 100%; border-radius: 2mm; }
+figure img.shot { border: 1px solid var(--line); box-shadow: 0 1mm 3mm rgba(0,0,0,.06); }
+figcaption { font-size: 8.8pt; color: var(--muted); margin-top: 1.5mm; }
+.note, .warn, .tip { border-radius: 2mm; padding: 2.5mm 3.5mm; margin: 0 0 4mm; break-inside: avoid; font-size: 9.6pt; }
+.note { background: #eef5fd; border-left: 1.2mm solid var(--s1); }
+.tip { background: var(--soft); border-left: 1.2mm solid var(--brand); }
+.warn { background: #fff6e0; border-left: 1.2mm solid var(--warn); }
+.note b:first-child, .tip b:first-child, .warn b:first-child { display: block; margin-bottom: .5mm; }
+.steps { counter-reset: s; list-style: none; padding: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 9mm; margin-bottom: 2.5mm; break-inside: avoid; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: -.2mm; width: 6mm; height: 6mm; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 700; font-size: 9pt; display: grid; place-items: center; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+.two figure { margin-bottom: 2mm; }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; margin: 0 0 4mm; }
+.kpi { background: #f6f8f8; border: 1px solid var(--line); border-radius: 2mm; padding: 3mm; break-inside: avoid; }
+.kpi b { display: block; font-size: 10.5pt; margin-bottom: .8mm; }
+.kpi span { font-size: 9pt; color: var(--muted); }
+
+/* cover */
+.cover { height: 297mm; padding: 0; position: relative; background: linear-gradient(160deg, #0f8a5f 0%, #0b6b49 55%, #0a4f39 100%); color: #fff; overflow: hidden; }
+.cover .in { position: absolute; left: 22mm; right: 22mm; top: 48mm; }
+.cover .logo { width: 22mm; height: 22mm; border-radius: 5mm; background: rgba(255,255,255,.16); display: grid; place-items: center; font-size: 15mm; font-weight: 800; margin-bottom: 10mm; }
+.cover h1 { font-size: 40pt; margin: 0 0 3mm; letter-spacing: -.5pt; }
+.cover .sub { font-size: 16pt; opacity: .92; margin: 0 0 14mm; }
+.cover .meta { font-size: 10.5pt; opacity: .85; line-height: 1.8; }
+.cover .art { position: absolute; right: -18mm; bottom: -10mm; width: 175mm; opacity: .95; }
+.cover .foot { position: absolute; left: 22mm; bottom: 16mm; font-size: 9pt; opacity: .75; }
+.toc { list-style: none; padding: 0; columns: 1; }
+.toc li { display: flex; gap: 3mm; padding: 1.6mm 0; border-bottom: 1px dotted var(--line); font-size: 10.5pt; }
+.toc li .n { color: var(--brand); font-weight: 700; min-width: 8mm; }
+.toc li .d { margin-left: auto; color: var(--muted); font-size: 9pt; }
+.small { font-size: 8.8pt; color: var(--muted); }
+.page-break { break-before: page; }
+.keep { break-inside: avoid; }
+h2, h3 { break-after: avoid; }
+.sign { border: 2px solid var(--ink); border-radius: 3mm; padding: 5mm 6mm; max-width: 120mm; margin: 0 auto 4mm; text-align: center; break-inside: avoid; }
+.sign .ic { font-size: 18pt; }
+.sign h4 { margin: 1mm 0 2mm; font-size: 13pt; }
+</style>
+</head>
+<body>
+
+<!-- ======================================================== COVER -->
+<section class="cover">
+  <div class="in">
+    <div class="logo">✚</div>
+    <h1>PharmaCam</h1>
+    <div class="sub">Kurulum ve Kullanım Kılavuzu</div>
+    <div class="meta">
+      Raspberry Pi 5 + Raspberry Pi AI Camera (Sony IMX500)<br>
+      Eczaneler için çip üzerinde yapay zekâ ile mağaza analitiği<br>
+      Sürüm 1.0 · Ekim 2026
+    </div>
+  </div>
+  <svg class="art" viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs><linearGradient id="g1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".18"/><stop offset="1" stop-color="#ffffff" stop-opacity=".02"/></linearGradient></defs>
+    <path d="M90 60 L640 60 L700 420 L20 420 Z" fill="url(#g1)"/>
+    <rect x="130" y="95" width="420" height="40" rx="6" fill="#ffffff" fill-opacity=".22"/>
+    <g fill="#ffffff" fill-opacity=".35"><rect x="60" y="150" width="34" height="200" rx="4"/><rect x="600" y="150" width="34" height="200" rx="4"/></g>
+    <g stroke="#ffd666" stroke-width="3" fill="none"><rect x="230" y="170" width="46" height="110" rx="6"/><rect x="330" y="210" width="52" height="128" rx="6"/><rect x="430" y="160" width="44" height="104" rx="6"/></g>
+    <g stroke="#9fe3c4" stroke-width="3" fill="none"><rect x="300" y="110" width="40" height="70" rx="6"/></g>
+    <g fill="#ffd666"><rect x="230" y="158" width="42" height="13" rx="3"/><rect x="330" y="198" width="42" height="13" rx="3"/><rect x="430" y="148" width="42" height="13" rx="3"/></g>
+    <g fill="#13201b" font-family="Arial" font-size="9" font-weight="700"><text x="234" y="168">#12 41s</text><text x="334" y="208">#15 9s</text><text x="434" y="158">#17 2s</text></g>
+    <path d="M160 390 L300 390" stroke="#ffc400" stroke-width="5" stroke-linecap="round"/>
+  </svg>
+  <div class="foot">github.com/umutcan-integrity/pharmacam</div>
+</section>
+
+<!-- ======================================================== TOC -->
+<h1 class="chap" style="break-before: page"><span class="n"></span>İçindekiler</h1>
+<ol class="toc">
+  <li><span class="n">1</span>PharmaCam nedir, neyi ölçer?</li>
+  <li><span class="n">2</span>Gerekli malzemeler</li>
+  <li><span class="n">3</span>Donanım montajı ve kamera kablosu</li>
+  <li><span class="n">4</span>microSD kart ve işletim sistemi</li>
+  <li><span class="n">5</span>Kameranın eczaneye yerleştirilmesi</li>
+  <li><span class="n">6</span>Yazılım kurulumu (tek komut)</li>
+  <li><span class="n">7</span>İlk ayarlar: bölgelerin çizilmesi</li>
+  <li><span class="n">8</span>Web paneli kullanımı</li>
+  <li><span class="n">9</span>Günlük PDF raporları ve tahmin</li>
+  <li><span class="n">10</span>İnternet bağlantısı ve merkez sunucu (Hub)</li>
+  <li><span class="n">11</span>API ve veri yapısı</li>
+  <li><span class="n">12</span>Doğruluk, performans ve kalibrasyon</li>
+  <li><span class="n">13</span>Bakım ve sorun giderme</li>
+  <li><span class="n">14</span>Gizlilik ve KVKK</li>
+  <li><span class="n">E</span>Ek: Yapılandırma dosyası başvurusu</li>
+</ol>
+
+<div class="tip"><b>Hızlı başlangıç (deneyimli kullanıcılar için)</b>
+Kamerayı Pi 5'in CAM/DISP konnektörüne takın → Raspberry Pi OS (64-bit) kurun → Pi'de
+<code>curl -sSL https://raw.githubusercontent.com/umutcan-integrity/pharmacam/main/deploy/install.sh | bash</code> çalıştırın →
+tarayıcıdan <code>http://&lt;pi-ip&gt;:8080</code> adresine girin → "Bölgeler" sekmesinde kapı, sıra, tezgâh ve rafları çizin.</div>
+
+<!-- ======================================================== 1 -->
+<h1 class="chap"><span class="n">1</span>PharmaCam nedir, neyi ölçer?</h1>
+<p>PharmaCam, eczanenin tavanına ya da üst köşesine monte edilen küçük bir cihazdır. İçindeki <b>Raspberry Pi AI Camera</b>,
+Sony IMX500 sensörü sayesinde yapay zekâ modelini <b>kameranın kendi çipinde</b> çalıştırır. Görüntü kameradan dışarı çıkmadan
+kişiler tespit edilir. Raspberry Pi 5 bu tespitleri takip eder, analiz eder ve sonuçları bir web panelinde ve günlük PDF raporlarında sunar.</p>
+
+<figure>
+<svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <rect x="10" y="40" width="150" height="150" rx="14" fill="#eef5fd" stroke="#2a78d6" stroke-width="2"/>
+  <text x="85" y="72" text-anchor="middle" font-weight="700" font-size="14" fill="#1d2b36">AI Camera</text>
+  <text x="85" y="92" text-anchor="middle" font-size="11" fill="#5d6c78">Sony IMX500</text>
+  <rect x="45" y="105" width="80" height="54" rx="8" fill="#2a78d6"/><circle cx="85" cy="132" r="17" fill="#1d2b36"/><circle cx="85" cy="132" r="8" fill="#5598e7"/>
+  <text x="85" y="178" text-anchor="middle" font-size="10.5" fill="#1d2b36">kişi tespiti çipte</text>
+  <path d="M162 115 H222" stroke="#1d2b36" stroke-width="2.5" marker-end="url(#ar)"/>
+  <text x="192" y="106" text-anchor="middle" font-size="10" fill="#5d6c78">kutular</text>
+  <rect x="225" y="20" width="300" height="200" rx="14" fill="#e3f3ec" stroke="#0f8a5f" stroke-width="2"/>
+  <text x="375" y="46" text-anchor="middle" font-weight="700" font-size="14" fill="#1d2b36">Raspberry Pi 5 · pharmacam servisi</text>
+  <g font-size="11" fill="#1d2b36">
+    <rect x="243" y="60" width="128" height="30" rx="7" fill="#fff" stroke="#b5d9c8"/><text x="307" y="79" text-anchor="middle">Takip (ByteTrack-lite)</text>
+    <rect x="379" y="60" width="128" height="30" rx="7" fill="#fff" stroke="#b5d9c8"/><text x="443" y="79" text-anchor="middle">Önlük → personel</text>
+    <rect x="243" y="98" width="128" height="30" rx="7" fill="#fff" stroke="#b5d9c8"/><text x="307" y="117" text-anchor="middle">Kapı / sıra / raf</text>
+    <rect x="379" y="98" width="128" height="30" rx="7" fill="#fff" stroke="#b5d9c8"/><text x="443" y="117" text-anchor="middle">Isı haritası</text>
+    <rect x="243" y="136" width="128" height="30" rx="7" fill="#fff" stroke="#b5d9c8"/><text x="307" y="155" text-anchor="middle">SQLite (geçmiş)</text>
+    <rect x="379" y="136" width="128" height="30" rx="7" fill="#fff" stroke="#b5d9c8"/><text x="443" y="155" text-anchor="middle">Rapor + tahmin</text>
+    <rect x="243" y="174" width="264" height="30" rx="7" fill="#0f8a5f"/><text x="375" y="193" text-anchor="middle" fill="#fff" font-weight="700">REST API + Web paneli :8080</text>
+  </g>
+  <path d="M527 189 H585" stroke="#1d2b36" stroke-width="2.5" marker-end="url(#ar)"/>
+  <path d="M527 60 H585" stroke="#1d2b36" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#ar)"/>
+  <rect x="588" y="150" width="162" height="78" rx="14" fill="#fff" stroke="#c9d2d9" stroke-width="2"/>
+  <text x="669" y="182" text-anchor="middle" font-weight="700" font-size="13" fill="#1d2b36">Eczacı</text>
+  <text x="669" y="200" text-anchor="middle" font-size="10.5" fill="#5d6c78">tablet / telefon / PC</text>
+  <rect x="588" y="22" width="162" height="78" rx="14" fill="#fff" stroke="#c9d2d9" stroke-width="2"/>
+  <text x="669" y="54" text-anchor="middle" font-weight="700" font-size="13" fill="#1d2b36">PharmaCam Hub</text>
+  <text x="669" y="72" text-anchor="middle" font-size="10.5" fill="#5d6c78">çoklu eczane (opsiyonel)</text>
+  <text x="556" y="52" text-anchor="middle" font-size="9.5" fill="#5d6c78">HTTPS</text>
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#1d2b36"/></marker></defs>
+</svg>
+<figcaption>Şekil 1 — Sistem mimarisi. Görüntü cihazdan çıkmaz; dışarıya yalnızca sayılar ve süreler gider.</figcaption>
+</figure>
+
+<div class="keep"><h2>Ölçülen göstergeler</h2>
+<table>
+<tr><th style="width:28%">Gösterge</th><th>Nasıl ölçülür?</th></tr>
+<tr><td><b>Giren / çıkan müşteri</b></td><td>Kapı önüne çizilen sanal çizgiyi geçen kişiler, yönüyle birlikte sayılır. Kapıda takibi kopan kişilerin çift sayılmasını önleyen kurallar vardır.</td></tr>
+<tr><td><b>Anlık içerideki kişi</b></td><td>Kamerada görünen müşteriler ile kapı sayacı birlikte kullanılır (hibrit). Mağaza 90 sn boyunca boş görünürse sayaç sıfırlanır, böylece hata birikmez.</td></tr>
+<tr><td><b>Raf önünde durma</b></td><td>Her raf bir bölgedir. Kişinin ayak noktası bölgede en az 3 sn kalırsa <i>duruş</i>, daha kısa kalırsa <i>geçiş</i> sayılır. Durma oranı = duruş / (duruş + geçiş).</td></tr>
+<tr><td><b>Sıra ve bekleme süresi</b></td><td>Sıra alanına girişten tezgâha ulaşmaya kadar geçen süre <i>bekleme</i>, tezgâhta geçen süre <i>hizmet</i> süresidir. Tezgâha ulaşmadan ayrılan kişi <i>vazgeçen</i> olarak sayılır.</td></tr>
+<tr><td><b>Isı haritası</b></td><td>Müşterilerin ayak noktalarının bulunduğu yerde geçen süre 64×48'lik bir ızgarada toplanır ve saatlik olarak saklanır.</td></tr>
+<tr><td><b>Personel ayrımı</b></td><td>Gövde bölgesindeki beyaz önlük oranı ve tezgâh arkasında geçen süre birlikte değerlendirilir. Personel, müşteri istatistiklerine katılmaz.</td></tr>
+<tr><td><b>Anonim ziyaret kaydı</b></td><td>Her ziyaret için giriş/çıkış saati, süre, gezilen bölgeler, sıra ve hizmet süreleri kaydedilir. Kimlik ya da yüz bilgisi tutulmaz.</td></tr>
+<tr><td><b>Kişi tahminleme</b></td><td>Önümüzdeki 7 gün için saatlik müşteri sayısı tahmin edilir. Aynı haftanın günü ağırlıklı ortalanır, son eğilim hesaba katılır. Saatlik personel önerisi de verilir.</td></tr>
+<tr><td><b>Günlük rapor</b></td><td>Her gün kapanış saatinde 4 sayfalık PDF rapor üretilir: göstergeler, grafikler, raf tablosu, ısı haritası ve yarın için tahmin.</td></tr>
+</table></div>
+
+<!-- ======================================================== 2 -->
+<h1 class="chap"><span class="n">2</span>Gerekli malzemeler</h1>
+<table>
+<tr><th style="width:34%">Malzeme</th><th style="width:12%">Adet</th><th>Not</th></tr>
+<tr><td>Raspberry Pi 5 (4 GB veya 8 GB)</td><td>1</td><td>Geliştirme 8 GB modelde yapıldı; 4 GB da yeterlidir (servis ~230 MB bellek kullanır).</td></tr>
+<tr><td>Raspberry Pi AI Camera (IMX500)</td><td>1</td><td>Kutusundan iki kablo çıkar. Pi 5 için <b>Standard–Mini</b> (bir ucu ince 22 pinli) kabloyu kullanın.</td></tr>
+<tr><td>Resmi 27 W USB-C güç adaptörü</td><td>1</td><td>Düşük güçlü adaptör kameranın kopmasına yol açabilir.</td></tr>
+<tr><td>microSD kart, 32 GB+ (A2 sınıfı)</td><td>1</td><td>Bir yıllık veri yaklaşık 200–400 MB tutar.</td></tr>
+<tr><td>Raspberry Pi 5 Active Cooler</td><td>1</td><td>Tavanda sıcaklık yükselir; önerilir.</td></tr>
+<tr><td>Kasa + duvar/tavan montaj aparatı</td><td>1</td><td>Kamera kablosu için yarıklı kasa. Kablo boyu yetmezse 30–50 cm'lik Standard–Mini kablo kullanın.</td></tr>
+<tr><td>Ethernet kablosu veya Wi-Fi</td><td>—</td><td>Kablolu bağlantı önerilir. Panele aynı ağdan erişilir; bulut senkronizasyonu için internet gerekir.</td></tr>
+<tr><td>Uzatma kablosu / priz</td><td>1</td><td>Tavana yakın bir priz ya da kablo kanalı planlayın.</td></tr>
+</table>
+
+<!-- ======================================================== 3 -->
+<h1 class="chap"><span class="n">3</span>Donanım montajı ve kamera kablosu</h1>
+<div class="warn"><b>Önce elektriği kesin</b>Kamera kablosunu yalnızca Pi kapalıyken ve güç kablosu çekiliyken takın veya çıkarın. Kamera, açılış sırasında algılanır. Kablo sonradan takılırsa Pi'yi yeniden başlatmak gerekir.</div>
+
+<figure>
+<svg viewBox="0 0 760 330" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <!-- Pi 5 board top view -->
+  <rect x="20" y="30" width="360" height="240" rx="14" fill="#1f7a4d"/>
+  <rect x="20" y="30" width="360" height="240" rx="14" fill="none" stroke="#145a37" stroke-width="3"/>
+  <g fill="#c9d2d9"><rect x="380" y="50" width="34" height="60" rx="4"/><rect x="380" y="120" width="34" height="60" rx="4"/><rect x="380" y="190" width="34" height="62" rx="4"/></g>
+  <text x="397" y="45" text-anchor="middle" font-size="10" fill="#1d2b36">USB / Ethernet</text>
+  <g fill="#9aa5ad"><rect x="60" y="260" width="34" height="18" rx="3"/><rect x="120" y="260" width="28" height="18" rx="3"/><rect x="165" y="260" width="28" height="18" rx="3"/></g>
+  <text x="77" y="296" text-anchor="middle" font-size="10" fill="#1d2b36">USB-C</text>
+  <text x="157" y="296" text-anchor="middle" font-size="10" fill="#1d2b36">micro HDMI ×2</text>
+  <rect x="205" y="236" width="44" height="26" rx="3" fill="#f5f5f5" stroke="#1d2b36"/><rect x="205" y="236" width="44" height="7" fill="#1d2b36"/>
+  <rect x="282" y="236" width="44" height="26" rx="3" fill="#f5f5f5" stroke="#1d2b36"/><rect x="282" y="236" width="44" height="7" fill="#1d2b36"/>
+  <text x="227" y="230" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">CAM/DISP 1</text>
+  <text x="304" y="230" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">CAM/DISP 0</text>
+  <rect x="40" y="48" width="230" height="18" rx="3" fill="#e2c46b"/><text x="155" y="61" text-anchor="middle" font-size="10" fill="#1d2b36">GPIO</text>
+  <rect x="120" y="110" width="80" height="80" rx="6" fill="#2d3a40"/><text x="160" y="154" text-anchor="middle" font-size="11" fill="#fff">BCM2712</text>
+  <path d="M304 262 C 304 310, 470 310, 520 250" stroke="#d4a017" stroke-width="12" fill="none" stroke-linecap="round" opacity=".9"/>
+  <text x="400" y="320" text-anchor="middle" font-size="11" fill="#1d2b36">Standard–Mini kamera kablosu</text>
+  <!-- camera -->
+  <rect x="500" y="150" width="120" height="110" rx="10" fill="#2a78d6"/><circle cx="560" cy="200" r="28" fill="#1d2b36"/><circle cx="560" cy="200" r="13" fill="#5598e7"/>
+  <text x="560" y="140" text-anchor="middle" font-size="12" font-weight="700" fill="#1d2b36">AI Camera</text>
+  <!-- connector cross section -->
+  <g transform="translate(560,20)">
+    <rect x="0" y="0" width="190" height="110" rx="10" fill="#f6f8f8" stroke="#c9d2d9"/>
+    <text x="95" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#1d2b36">Konnektör kesiti</text>
+    <rect x="30" y="58" width="130" height="26" rx="3" fill="#ddd" stroke="#1d2b36"/>
+    <path d="M30 58 L60 32 L72 36 L44 58 Z" fill="#1d2b36"/>
+    <text x="78" y="38" font-size="9.5" fill="#1d2b36">kilit tırnağı</text>
+    <rect x="44" y="66" width="105" height="7" fill="#d4a017"/>
+    <rect x="44" y="73" width="105" height="3" fill="#c0912a"/>
+    <text x="95" y="100" text-anchor="middle" font-size="9.5" fill="#1d2b36">metal temaslar tırnağın TERSİNE bakar</text>
+    <path d="M100 76 V86" stroke="#d03b3b" stroke-width="2" marker-end="url(#ar2)"/>
+  </g>
+  <defs><marker id="ar2" viewBox="0 0 10 10" refX="5" refY="9" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 0 L5 10 z" fill="#d03b3b"/></marker></defs>
+</svg>
+<figcaption>Şekil 2 — Pi 5 üzerinde kamera konnektörleri (şematik). İki konnektör, micro HDMI ile Ethernet arasında, kartın aynı kenarındadır; ikisi de kullanılabilir.</figcaption>
+</figure>
+
+<ol class="steps">
+  <li><b>Pi'yi kapatın ve güç kablosunu çekin.</b> Active Cooler takacaksanız önce kamera kablosunu bağlayın, soğutucuyu sonra takın.</li>
+  <li><b>Pi tarafı:</b> CAM/DISP 0 (veya 1) konnektörünün siyah kilit tırnağını tırnağınızla nazikçe yukarı kaldırın. Kablonun <b>ince (22 pinli) ucunu</b>, <b>metal temaslar kilit tırnağının ters tarafına bakacak</b> şekilde sonuna kadar düz itin. Tırnağı geri bastırın.</li>
+  <li><b>Kamera tarafı:</b> Kameradaki konnektörün tırnağını kaldırın. Kablonun geniş ucunu, <b>metal temaslar kamera kartına dönük</b> (tırnağın tersine) olacak şekilde takıp kilitleyin.</li>
+  <li><b>Kontrol:</b> Kablo iki uçta da eğri durmamalı, hafifçe çektiğinizde çıkmamalıdır. Kabloyu keskin açıyla katlamayın; montajda gergin kalmamasına dikkat edin.</li>
+  <li><b>Gücü verin.</b> Kurulumdan sonra <code>rpicam-hello --list-cameras</code> komutu <code>imx500</code> satırını göstermelidir.</li>
+</ol>
+<div class="note"><b>Bilinen sorun belirtileri</b>
+<code>No cameras available</code>: kablo takılı değil, ters takılmış ya da tam oturmamış. Kapatın, iki ucu da yeniden takın.<br>
+<code>Device timeout detected</code> veya <code>stream on failed</code>: kablo kısmen temas ediyor ya da kamera çalışırken kablo oynatılmış. Kapatıp yeniden takın.</div>
+
+<!-- ======================================================== 4 -->
+<h1 class="chap"><span class="n">4</span>microSD kart ve işletim sistemi</h1>
+<ol class="steps">
+  <li>Bilgisayara <b>Raspberry Pi Imager</b>'ı kurun (raspberrypi.com/software).</li>
+  <li>Cihaz olarak <b>Raspberry Pi 5</b>, işletim sistemi olarak <b>Raspberry Pi OS (64-bit)</b> seçin. Ekransız kullanım için "Lite" sürümü yeterlidir.</li>
+  <li><b>Ayarları düzenle</b> ekranında şunları yapın:
+    <ul>
+      <li>Ana makine adını belirleyin, örn. <code>pharmacam-kadikoy</code>. Panel adresi <code>http://pharmacam-kadikoy.local:8080</code> olur.</li>
+      <li>Kullanıcı adı ve güçlü bir şifre belirleyin.</li>
+      <li>Wi-Fi bilgilerini girin (Ethernet kullanacaksanız gerekmez) ve ülke olarak <b>TR</b> seçin.</li>
+      <li>Saat dilimini <b>Europe/Istanbul</b> yapın.</li>
+      <li><b>Hizmetler</b> sekmesinde SSH'yi açın. Mümkünse "yalnızca açık anahtar" seçeneğini kullanın.</li>
+    </ul></li>
+  <li>Kartı yazdırın, Pi'ye takın ve gücü verin. İlk açılış 1–2 dakika sürer.</li>
+  <li>Bilgisayardan bağlanın: <code>ssh kullanici@pharmacam-kadikoy.local</code></li>
+</ol>
+
+<!-- ======================================================== 5 -->
+<h1 class="chap"><span class="n">5</span>Kameranın eczaneye yerleştirilmesi</h1>
+<p>Doğru konum, doğruluğun en büyük belirleyicisidir. Kamera tek bakışta <b>giriş kapısını</b>, <b>tezgâh önündeki sıra alanını</b>
+ve mümkün olduğunca çok <b>rafı</b> görmelidir. AI Camera'nın görüş açısı yaklaşık 78°'dir (köşegen). 3 m uzaklıkta yaklaşık 4 m genişliğinde bir alanı görür.</p>
+
+<div class="two">
+<figure>
+<svg viewBox="0 0 360 260" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="360" height="260" fill="#fbfcfb"/>
+  <line x1="20" y1="20" x2="20" y2="235" stroke="#1d2b36" stroke-width="4"/>
+  <line x1="20" y1="20" x2="345" y2="20" stroke="#1d2b36" stroke-width="3"/>
+  <line x1="20" y1="235" x2="345" y2="235" stroke="#1d2b36" stroke-width="3"/>
+  <rect x="22" y="40" width="22" height="16" rx="3" fill="#2a78d6"/>
+  <path d="M44 48 L340 120 L340 235 L150 235 Z" fill="#2a78d6" fill-opacity=".14" stroke="#2a78d6" stroke-dasharray="5 4"/>
+  <text x="50" y="38" font-size="10.5" fill="#1d2b36" font-weight="700">kamera</text>
+  <path d="M70 48 A 26 26 0 0 1 64 66" stroke="#d03b3b" fill="none" stroke-width="2"/>
+  <text x="74" y="72" font-size="10" fill="#d03b3b">30–45° aşağı</text>
+  <g stroke="#5d6c78" stroke-width="1.2"><line x1="8" y1="48" x2="8" y2="235"/><line x1="4" y1="48" x2="12" y2="48"/><line x1="4" y1="235" x2="12" y2="235"/></g>
+  <text x="14" y="150" font-size="10" fill="#1d2b36" transform="rotate(-90 14 150)">2,4 – 3,0 m</text>
+  <g fill="#1d2b36"><circle cx="230" cy="168" r="8"/><rect x="223" y="176" width="14" height="40" rx="5"/><rect x="224" y="214" width="5" height="21"/><rect x="231" y="214" width="5" height="21"/></g>
+  <rect x="290" y="150" width="40" height="85" fill="#c9a77c"/><text x="310" y="145" text-anchor="middle" font-size="10" fill="#1d2b36">tezgâh</text>
+</svg>
+<figcaption>Şekil 3 — Yandan görünüm. Kafa üstü değil, eğik bakış: kişinin ayakları görünmeli.</figcaption>
+</figure>
+<figure>
+<svg viewBox="0 0 360 260" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <rect x="20" y="20" width="320" height="220" fill="#fbfcfb" stroke="#1d2b36" stroke-width="3"/>
+  <rect x="110" y="30" width="150" height="26" fill="#c9a77c"/><text x="185" y="48" text-anchor="middle" font-size="10.5" fill="#1d2b36">tezgâh</text>
+  <rect x="120" y="60" width="130" height="30" fill="#ba55d3" fill-opacity=".18" stroke="#ba55d3"/><text x="185" y="80" text-anchor="middle" font-size="9.5" fill="#1d2b36">hizmet</text>
+  <rect x="150" y="92" width="70" height="90" fill="#ff6347" fill-opacity=".14" stroke="#ff6347"/><text x="185" y="140" text-anchor="middle" font-size="9.5" fill="#1d2b36">sıra</text>
+  <rect x="24" y="60" width="26" height="150" fill="#3498db" fill-opacity=".22" stroke="#3498db"/><text x="37" y="140" text-anchor="middle" font-size="9.5" fill="#1d2b36" transform="rotate(-90 37 140)">raf</text>
+  <rect x="310" y="60" width="26" height="150" fill="#3498db" fill-opacity=".22" stroke="#3498db"/><text x="323" y="140" text-anchor="middle" font-size="9.5" fill="#1d2b36" transform="rotate(-90 323 140)">raf</text>
+  <line x1="60" y1="240" x2="140" y2="240" stroke="#ffc400" stroke-width="7"/><text x="100" y="256" text-anchor="middle" font-size="10" fill="#1d2b36">kapı</text>
+  <rect x="318" y="226" width="16" height="12" rx="2" fill="#2a78d6"/>
+  <path d="M322 228 L40 120 L40 240 L250 240 Z" fill="#2a78d6" fill-opacity=".1" stroke="#2a78d6" stroke-dasharray="5 4"/>
+  <path d="M326 228 L180 30" stroke="#2a78d6" stroke-dasharray="2 4"/>
+  <text x="300" y="218" text-anchor="end" font-size="10" fill="#1d2b36" font-weight="700">kamera (köşe)</text>
+</svg>
+<figcaption>Şekil 4 — Üstten görünüm. Kamera kapı tarafındaki köşede; kapı, sıra ve tezgâh aynı karede.</figcaption>
+</figure>
+</div>
+
+<h2>Yerleştirme kuralları</h2>
+<ul>
+  <li><b>Yükseklik 2,4–3,0 m, 30–45° aşağı eğim.</b> Tam tepeden bakan kamera kişileri yukarıdan görür. Model insanları yandan/önden tanımaya eğitildiği için bu doğruluğu düşürür.</li>
+  <li><b>Kapı çizgisi kadrajın içinde kalmalı</b> ve kişi çizgiyi geçmeden önce ve sonra en az 1–2 adım görünmelidir.</li>
+  <li><b>Ayaklar görünmeli.</b> Bölge hesapları kişinin ayak noktasına göre yapılır. Tezgâh ya da stant ayakları kapatıyorsa kamerayı yükseltin.</li>
+  <li><b>Ters ışıktan kaçının.</b> Cam kapıya ya da güneş alan vitrine doğrudan bakmayın, siluetler zor tespit edilir.</li>
+  <li><b>Kamera ters monte edildiyse</b> <code>camera.hflip</code> ve <code>camera.vflip</code> ayarlarını <code>true</code> yapın.</li>
+  <li><b>Büyük eczanelerde</b> tek kamera tüm alanı göremeyebilir. Önceliği kapı ve sıraya verin; ikinci cihaz yol haritasındadır.</li>
+</ul>
+
+<!-- ======================================================== 6 -->
+<h1 class="chap"><span class="n">6</span>Yazılım kurulumu (tek komut)</h1>
+<p>Pi'ye SSH ile bağlandıktan sonra aşağıdaki komutu çalıştırın:</p>
+<pre>curl -sSL https://raw.githubusercontent.com/umutcan-integrity/pharmacam/main/deploy/install.sh | bash</pre>
+<p>Betik şunları yapar (tekrar çalıştırmak güvenlidir; güncelleme olarak çalışır, ayar ve verilerinize dokunmaz):</p>
+<ol>
+  <li>Sistem paketlerini kurar: <code>imx500-all</code> (AI Camera ürün yazılımı ve modelleri), <code>python3-picamera2</code>, OpenCV, NumPy, Matplotlib.</li>
+  <li>Kodu <code>/opt/pharmacam</code> dizinine yerleştirir ve bir Python sanal ortamı hazırlar.</li>
+  <li><code>config/pharmacam.yaml</code> dosyasını oluşturur: cihaza seri numarasından benzersiz bir kimlik ve <b>rastgele bir panel şifresi</b> atar.</li>
+  <li>Kamerayı kontrol eder ve <code>pharmacam</code> systemd servisini kurup başlatır. Servis her açılışta otomatik başlar, çökerse 5 sn içinde yeniden başlar.</li>
+</ol>
+<pre><span class="c"># Kurulum sonunda görülen çıktı (örnek)</span>
+==> Kurulum tamamlandı!
+    Panel:      http://192.168.1.124:8080   (veya http://pharmacam-kadikoy.local:8080)
+    Kullanıcı:  admin
+    Şifre:      ••••••••••••   (config/pharmacam.yaml içinden değiştirilebilir)</pre>
+
+<div class="warn"><b>IMX500 için yeniden başlatma</b>İlk kurulumda <code>imx500-all</code> yeni kurulduysa Pi'yi bir kez yeniden başlatın: <code>sudo reboot</code>. Kameranın ilk açılışında ağ yazılımının kameraya yüklenmesi 1–2 dakika sürebilir. Bu süre boyunca panelde "Kamera bağlı değil veya başlatılıyor" yazar.</div>
+
+<div class="keep"><h2>Faydalı komutlar</h2>
+<table>
+<tr><th style="width:52%">Komut</th><th>Ne yapar?</th></tr>
+<tr><td><code>systemctl status pharmacam</code></td><td>Servis durumu</td></tr>
+<tr><td><code>journalctl -u pharmacam -f</code></td><td>Canlı loglar</td></tr>
+<tr><td><code>sudo systemctl restart pharmacam</code></td><td>Servisi yeniden başlat (ayar dosyası değiştiyse)</td></tr>
+<tr><td><code>/opt/pharmacam/venv/bin/python -m pharmacam check</code></td><td>Kamera ve model testi: fps ve görülen kişi sayısı. Önce servisi durdurun.</td></tr>
+<tr><td><code>... -m pharmacam report --day 2026-10-19</code></td><td>Belirli bir gün için PDF rapor üret</td></tr>
+<tr><td><code>rpicam-hello --list-cameras</code></td><td>Kamera donanımı görünüyor mu?</td></tr>
+</table></div>
+
+<!-- ======================================================== 7 -->
+<h1 class="chap"><span class="n">7</span>İlk ayarlar: bölgelerin çizilmesi</h1>
+<p>Tarayıcıdan panele girin (<code>http://&lt;pi-adresi&gt;:8080</code>, kullanıcı <code>admin</code>) ve <b>Bölgeler</b> sekmesini açın.
+Arka planda kameranın gördüğü eczane görüntüsü vardır. İçeride kimse yokken alınır; kimse yoksa kişiler bulanıklaştırılır.</p>
+<figure><img class="shot" src="assets/panel-bolgeler.png" style="width:100%"><figcaption>Şekil 5 — Bölge düzenleyici. Renkler bölge tipini gösterir.</figcaption></figure>
+<table>
+<tr><th style="width:24%">Bölge tipi</th><th>Nasıl çizilir?</th><th style="width:30%">Ne için?</th></tr>
+<tr><td><span style="color:#b38600">■</span> <b>Giriş kapısı</b></td><td>İki tıkla kapının önüne, zemin seviyesinde bir çizgi çizin. Üçüncü tıkla mağazanın <b>iç</b> tarafını işaretleyin.</td><td>Giren/çıkan sayımı</td></tr>
+<tr><td><span style="color:#ff6347">■</span> <b>Sıra alanı</b></td><td>Tezgâh önünde müşterilerin sıra beklediği zemini çevreleyin.</td><td>Sıra uzunluğu, bekleme</td></tr>
+<tr><td><span style="color:#ba55d3">■</span> <b>Tezgâh (hizmet)</b></td><td>Tezgâhın hemen önünde, müşterinin hizmet alırken durduğu dar şerit.</td><td>Hizmet süresi</td></tr>
+<tr><td><span style="color:#2ecc71">■</span> <b>Tezgâh arkası</b></td><td>Personelin çalıştığı alan.</td><td>Personel ayrımına yardım</td></tr>
+<tr><td><span style="color:#3498db">■</span> <b>Raf</b></td><td>Rafın <b>önündeki zemin</b> (rafın kendisi değil). Her rafa anlamlı bir ad verin.</td><td>Durma/geçme, süre</td></tr>
+</table>
+<div class="tip"><b>Altın kural: ayak noktası</b>Bir kişi, kutusunun <b>alt orta noktası</b> (ayakları) bölgenin içindeyse o bölgede sayılır. Bölgeleri rafların veya tezgâhın gövdesine değil, <b>önündeki zemine</b> çizin.</div>
+<ol class="steps">
+  <li>Sağdaki listeden tipi seçip <b>+ Yeni bölge</b>'ye basın. Ad ve kimlik alanlarını doldurun.</li>
+  <li>Görüntüye tıklayarak köşe ekleyin. Noktaları sürükleyerek düzeltin, sağ tıkla silin.</li>
+  <li><b>Kaydet ve uygula</b>'ya basın. Değişiklik servis yeniden başlamadan hemen devreye girer.</li>
+  <li><b>Test:</b> Kapıdan birkaç kez girip çıkın, sırada bekleyin, bir rafın önünde 5 sn durun. "Canlı" sekmesinde sayaçların ve bölge sayılarının değiştiğini görün.</li>
+</ol>
+
+<!-- ======================================================== 8 -->
+<h1 class="chap"><span class="n">8</span>Web paneli kullanımı</h1>
+<p>Panel telefon, tablet ve bilgisayarda çalışır, açık ve koyu temayı destekler. Ekranlar aşağıda sırayla anlatılmıştır.</p>
+<div class="keep"><h2>Canlı</h2>
+<figure><img class="shot" src="assets/panel-canli.png" style="width:100%"><figcaption>Şekil 6 — Canlı ekran: içerideki müşteri, sıra, görevdeki personel, bugünkü giriş/çıkış ve bölge doluluğu. Kişi kutuları: mavi = müşteri, yeşil = personel.</figcaption></figure></div>
+<p>Canlı görüntüde kişiler <b>bulanıklaştırılır</b> ve görüntü <b>kaydedilmez</b>. İsterseniz Ayarlar'dan canlı görüntüyü tamamen kapatabilirsiniz; sayaçlar çalışmaya devam eder.</p>
+
+<div class="keep"><h2>Günlük analiz</h2>
+<figure><img class="shot" src="assets/panel-analiz.png" style="width:100%"><figcaption>Şekil 7 — Bir günün özeti, saatlik giriş, ortalama doluluk, son 30 gün ve otomatik değerlendirme.</figcaption></figure></div>
+
+<div class="keep"><h2>Raflar</h2>
+<figure><img class="shot" src="assets/panel-raflar.png" style="width:100%"><figcaption>Şekil 8 — Raf önünde durma ve geçme. Durma oranı düşük bir raf, teşhirinin gözden geçirilmesi gerektiğine işaret eder.</figcaption></figure></div>
+
+<div class="keep"><h2>Sıra</h2>
+<figure><img class="shot" src="assets/panel-sira.png" style="width:100%"><figcaption>Şekil 9 — Sıra analizi: ortalama, medyan ve %90 bekleme; saatlik bekleme (3 dk hedefini aşan saatler kırmızı); bekleme dağılımı.</figcaption></figure></div>
+
+<div class="keep"><h2>Isı haritası</h2>
+<figure><img class="shot" src="assets/panel-isi.png" style="width:100%"><figcaption>Şekil 10 — Müşterilerin en çok vakit geçirdiği alanlar (bugün / 7 gün / 30 gün). Personel dahil edilmez.</figcaption></figure></div>
+
+<div class="keep"><h2>Tahmin</h2>
+<figure><img class="shot" src="assets/panel-tahmin.png" style="width:100%"><figcaption>Şekil 11 — Önümüzdeki 7 günün tahmini. Seçilen gün için saatlik beklenen müşteri ve olası aralık gösterilir. Altta saatlik tezgâh personeli önerisi vardır.</figcaption></figure></div>
+
+<div class="keep"><h2>Ziyaretler, Raporlar ve Ayarlar</h2>
+<figure><img class="shot" src="assets/panel-ziyaret.png" style="width:100%"><figcaption>Şekil 12 — Anonim ziyaret kayıtları. Takip numarası geçicidir, kişiyi tanımlamaz. CSV olarak dışa aktarılabilir.</figcaption></figure></div>
+<div class="two">
+<figure><img class="shot" src="assets/panel-raporlar.png"><figcaption>Şekil 13 — Günlük PDF raporları.</figcaption></figure>
+<figure><img class="shot" src="assets/panel-ayarlar.png"><figcaption>Şekil 14 — Ayarlar ve cihaz durumu (kamera, sıcaklık, disk, senkronizasyon).</figcaption></figure>
+</div>
+
+<!-- ======================================================== 9 -->
+<h1 class="chap"><span class="n">9</span>Günlük PDF raporları ve tahmin</h1>
+<p>Rapor her gün <code>reports.closing_hour</code> saatinde (varsayılan 22:00) otomatik üretilir ve "Raporlar" sekmesinde listelenir.
+Cihaz kapanış saatinde kapalıysa eksik raporlar bir sonraki açılışta tamamlanır. Bugünün raporu istendiği an "Bugünün raporunu oluştur" düğmesiyle de alınabilir.</p>
+<div class="two">
+<figure><img class="shot" src="assets/rapor-1.png"><figcaption>Sayfa 1 — Özet göstergeler, saatlik giriş, doluluk, öne çıkanlar</figcaption></figure>
+<figure><img class="shot" src="assets/rapor-2.png"><figcaption>Sayfa 2 — Sıra ve personel analizi</figcaption></figure>
+</div>
+<div class="two">
+<figure><img class="shot" src="assets/rapor-3.png"><figcaption>Sayfa 3 — Raf analizi ve ısı haritası</figcaption></figure>
+<figure><img class="shot" src="assets/rapor-4.png"><figcaption>Sayfa 4 — Yarın için tahmin ve son 4 hafta</figcaption></figure>
+</div>
+<h2>Tahmin yöntemi</h2>
+<p>Her (haftanın günü × saat) için, aynı günün önceki haftalarındaki giriş sayıları ağırlıklı ortalanır. Her eski hafta bir yenisinin 0,75 katı ağırlık alır.
+Sonuç, son 14 günün uzun dönem ortalamasına oranıyla (eğilim, 0,7–1,3 aralığında) ölçeklenir. Olası aralık %80 güven bandıdır.
+İki haftalık geçmişte hiç açık olmayan günler (örn. Pazar) "Kapalı" görünür. Personel önerisi, beklenen saatlik müşteri ve ortalama hizmet süresiyle
+tezgâh kullanımını %75'in altında tutacak kişi sayısıdır.</p>
+<div class="note"><b>Ne kadar veri gerekir?</b>İlk tahminler 1 hafta sonra anlamlı olur. 4 hafta sonra haftalık örüntü oturur.</div>
+
+<!-- ======================================================== 10 -->
+<h1 class="chap"><span class="n">10</span>İnternet bağlantısı ve merkez sunucu (Hub)</h1>
+<p>Cihaz internetsiz de tam çalışır: tüm veriler Pi üzerindeki SQLite veritabanında tutulur (varsayılan 400 gün).
+Birden fazla eczaneyi tek ekrandan izlemek için <b>PharmaCam Hub</b> kullanılır.</p>
+<h2>Senkronizasyon nasıl çalışır?</h2>
+<ul>
+  <li>Cihaz her 60 sn'de bir, hub'a <b>henüz iletmediği</b> satırları (ziyaretler, dakikalık metrikler, saatlik raf istatistikleri, ısı haritaları) ve anlık durumu gönderir.</li>
+  <li>Gönderim gzip'li JSON'dur ve cihaza özel anahtarla (<code>Authorization: Bearer …</code>) kimlik doğrular. Hub verileri kaydetmeden onay vermez.</li>
+  <li><b>İnternet kesilirse veri kaybolmaz.</b> Cihazın veritabanı kuyruk görevi görür; bağlantı gelince birikenler 500'lük partiler halinde gönderilir.</li>
+  <li>Aynı paket iki kez gelse bile hub'da kopya oluşmaz (idempotent).</li>
+</ul>
+<div class="keep"><h2>Hub kurulumu (Docker)</h2>
+<pre><span class="c"># sunucuda</span>
+git clone https://github.com/umutcan-integrity/pharmacam.git &amp;&amp; cd pharmacam
+<span class="c"># deploy/hub/docker-compose.yml içinde PHARMACAM_HUB_TOKENS ve şifreyi düzenleyin</span>
+docker compose -f deploy/hub/docker-compose.yml up -d
+<span class="c"># panel: http://sunucu:9000  — önüne HTTPS (Caddy/nginx) koyun</span></pre></div>
+<div class="keep"><h2>Cihazı hub'a bağlama</h2>
+<pre><span class="c"># /opt/pharmacam/config/pharmacam.yaml</span>
+sync:
+  enabled: true
+  hub_url: https://hub.ornekeczane.com
+  device_token: "hub'da bu cihaz için tanımladığınız anahtar"
+  interval_seconds: 60</pre></div>
+<p>Ardından <code>sudo systemctl restart pharmacam</code> komutunu çalıştırın. Ayarlar sekmesindeki "Bulut eşitleme" satırı son başarılı gönderim zamanını gösterir.</p>
+<div class="tip"><b>Panele uzaktan erişim</b>Eczane dışından cihaz paneline erişmek için cihazı internete açmak yerine <b>Tailscale</b> gibi bir VPN önerilir:
+<code>curl -fsSL https://tailscale.com/install.sh | sh &amp;&amp; sudo tailscale up</code>. Böylece panel yalnızca sizin cihazlarınızdan görülebilir.</div>
+
+<!-- ======================================================== 11 -->
+<h1 class="chap"><span class="n">11</span>API ve veri yapısı</h1>
+<p>Panelin gösterdiği her şey REST API'den gelir. Etkileşimli belgeler cihazda <code>http://&lt;pi&gt;:8080/docs</code> adresindedir.
+Kimlik doğrulama HTTP Basic'tir (panel kullanıcısı); <code>/api/health</code> izleme için açıktır.</p>
+<table>
+<tr><th style="width:38%">Uç nokta</th><th>Açıklama</th></tr>
+<tr><td><code>GET /api/health</code></td><td>Cihaz, kamera, fps, CPU sıcaklığı, disk, senkronizasyon durumu</td></tr>
+<tr><td><code>GET /api/live</code></td><td>Anlık: içerideki kişi, sıra uzunluğu ve bekleme süreleri, personel, bölge doluluğu, takip edilen kişiler</td></tr>
+<tr><td><code>GET /api/live.jpg</code> · <code>/api/live.mjpg</code></td><td>Kişileri bulanıklaştırılmış canlı görüntü / akış</td></tr>
+<tr><td><code>GET /api/stream</code></td><td>Server-Sent Events: saniyede bir canlı metrik</td></tr>
+<tr><td><code>GET /api/summary?day=</code></td><td>Günlük göstergeler</td></tr>
+<tr><td><code>GET /api/hourly?day=</code> · <code>/api/minutes?day=</code></td><td>Saatlik / dakikalık seriler</td></tr>
+<tr><td><code>GET /api/daily?start=&amp;end=</code></td><td>Günlük seri (tarih aralığı)</td></tr>
+<tr><td><code>GET /api/zones/stats?start=&amp;end=</code></td><td>Raf duruş/geçiş/süre istatistikleri</td></tr>
+<tr><td><code>GET /api/queue?day=</code></td><td>Sıra analizi ve bekleme dağılımı</td></tr>
+<tr><td><code>GET /api/heatmap?start=&amp;end=&amp;format=png|json</code></td><td>Isı haritası görseli veya normalize ızgara</td></tr>
+<tr><td><code>GET /api/visits?day=</code> · <code>/api/export/visits.csv</code></td><td>Anonim ziyaret kayıtları</td></tr>
+<tr><td><code>GET /api/forecast?days=7</code></td><td>Saatlik tahmin ve personel önerisi</td></tr>
+<tr><td><code>GET /api/insights?day=</code></td><td>Otomatik Türkçe değerlendirme cümleleri</td></tr>
+<tr><td><code>GET /api/reports</code> · <code>/api/reports/{gün}.pdf</code> · <code>POST /api/reports/{gün}</code></td><td>Rapor listesi, indirme, üretme</td></tr>
+<tr><td><code>GET/PUT /api/config/zones</code></td><td>Bölgeleri oku / doğrulayarak kaydet</td></tr>
+<tr><td><code>GET/PATCH /api/config/settings</code></td><td>Panelden değiştirilebilen ayarlar (izinli liste)</td></tr>
+</table>
+<pre><span class="c"># örnek: bugünün özeti</span>
+curl -u admin:SIFRE http://pharmacam-kadikoy.local:8080/api/summary
+{"day":"2026-10-16","entries":670,"busiest_hour":18,"avg_wait_s":8.0,"p90_wait_s":34.0,
+ "served":555,"abandoned":5,"peak_occupancy":10,"top_zone":"otc", ...}</pre>
+<div class="keep"><h2>Veritabanı tabloları (SQLite, <code>data/pharmacam.db</code>)</h2>
+<table>
+<tr><th style="width:20%">Tablo</th><th>İçerik</th></tr>
+<tr><td><code>visits</code></td><td>Her ziyaret: başlangıç/bitiş, süre, personel mi, kapıdan girdi/çıktı mı, sıra bekleme, hizmet süresi, vazgeçti mi, bölge süreleri (JSON)</td></tr>
+<tr><td><code>minutes</code></td><td>Dakikalık: giriş, çıkış, ortalama/maks. doluluk, sıra, personel, hizmet sayısı</td></tr>
+<tr><td><code>events</code></td><td>Olaylar: entry, exit, queue_join, served, queue_abandon, shelf_stop</td></tr>
+<tr><td><code>zone_hours</code></td><td>Saat × bölge: duruş, geçiş, toplam ve en uzun süre</td></tr>
+<tr><td><code>heatmaps</code></td><td>Saatlik 64×48 yoğunluk ızgarası (float32)</td></tr>
+<tr><td><code>reports</code></td><td>Üretilen PDF raporların yolu</td></tr>
+</table></div>
+
+<!-- ======================================================== 12 -->
+<h1 class="chap"><span class="n">12</span>Doğruluk, performans ve kalibrasyon</h1>
+<h2>İşleme hattı</h2>
+<ol>
+  <li><b>Tespit (kamera çipi):</b> SSD MobileNetV2 FPN-Lite 320×320 (COCO) modeli IMX500 üzerinde çalışır ve her karede kişi kutularını verir.</li>
+  <li><b>Takip:</b> İki aşamalı ByteTrack benzeri eşleştirme. Önce yüksek güvenli kutular eşleşir, ardından düşük güvenli kutular kısmen örtülen kişileri sürdürür. Sabit hız tahmini kullanılır, bir kişi 2 sn görünmezse takibi biter.</li>
+  <li><b>Analitik:</b> kapı histerezisi (çift sayım yok), bölge giriş/çıkış toleransı (0,8 sn), önlük skoru (üstel ortalama), dakikalık ve saatlik toplama.</li>
+</ol>
+<div class="kpis">
+  <div class="kpi"><b>1,25 ms / kare</b><span>Analiz süresi, Raspberry Pi 5, 1280×960, ölçüldü</span></div>
+  <div class="kpi"><b>~800 kare/sn kapasite</b><span>Darboğaz işlemci değil kamera (15–30 fps)</span></div>
+  <div class="kpi"><b>~230 MB bellek</b><span>Servis toplam bellek kullanımı</span></div>
+</div>
+<h2>Simülasyonda doğrulama</h2>
+<p>Yazılım, gerçekçi bir eczane simülatörüyle test edilir (müşteriler raflarda durur, sıraya girer, hizmet alır; beyaz önlüklü personel tezgâh arkasında çalışır ve raf düzenler).
+Simülatörün bildiği gerçek kapı geçişleri ile sistemin ölçtüğü değerler karşılaştırılmıştır:</p>
+<table>
+<tr><th>Senaryo (1 saat)</th><th>Gerçek giriş</th><th>Ölçülen giriş</th><th>Gerçek çıkış</th><th>Ölçülen çıkış</th></tr>
+<tr><td>Sabah 09:00 (sakin)</td><td>37</td><td>37</td><td>39</td><td>40</td></tr>
+<tr><td>Öğle 11:00</td><td>71</td><td>71</td><td>68</td><td>66</td></tr>
+<tr><td>Akşam 18:00 (yoğun)</td><td>100</td><td>100</td><td>97</td><td>96</td></tr>
+</table>
+<p class="small">Simülasyonda tespitlerin %3'ü rastgele kaçırılır ve kutulara gürültü eklenir. Gerçek eczanede doğruluk; kamera konumuna, ışığa ve kalabalığa bağlıdır.
+Pilot kurulumda ilk hafta elle sayımla karşılaştırma yapılması önerilir (hedef ≥ %95).</p>
+<div class="keep"><h2>Kalibrasyon</h2>
+<table>
+<tr><th style="width:36%">Belirti</th><th>Ayar</th></tr>
+<tr><td>Müşteriler personel olarak görünüyor (beyaz/açık renk giysi)</td><td>"Önlük eşiği"ni yükseltin (örn. 0,32 → 0,40)</td></tr>
+<tr><td>Personel müşteri olarak görünüyor (loş ışık, açık mavi önlük)</td><td>Eşiği düşürün (örn. 0,25) ve "Tezgâh arkası" bölgesini doğru çizin</td></tr>
+<tr><td>Raf önünden geçenler "durdu" sayılıyor</td><td>"Rafta durma için en az süre"yi 3 → 5 sn yapın</td></tr>
+<tr><td>Sıranın önünden geçenler sıraya girmiş sayılıyor</td><td>"Sıraya girmiş sayılma süresi"ni 3 → 5 sn yapın, sıra alanını daraltın</td></tr>
+<tr><td>Kapı sayımı eksik</td><td>Kapı çizgisini kapıdan 0,5–1 m içeri alın; kişi çizgiden önce ve sonra görünmeli</td></tr>
+</table></div>
+
+<!-- ======================================================== 13 -->
+<h1 class="chap"><span class="n">13</span>Bakım ve sorun giderme</h1>
+<table>
+<tr><th style="width:32%">Belirti</th><th style="width:34%">Olası neden</th><th>Çözüm</th></tr>
+<tr><td>Panelde "Kamera bağlı değil"</td><td>Kablo gevşek/ters, kamera açılışta algılanmadı</td><td>Pi'yi kapatın, kabloyu iki uçta yeniden takın (Bölüm 3), açın. <code>rpicam-hello --list-cameras</code> ile doğrulayın.</td></tr>
+<tr><td>Logda <code>Device timeout detected</code></td><td>Kablo teması, güç yetersizliği</td><td>Kabloyu yeniden takın; 27 W resmi adaptör kullanın. Servis takılmayı algılayıp kendini yeniden başlatır.</td></tr>
+<tr><td>Panel açılmıyor</td><td>Servis durmuş, IP değişmiş</td><td><code>systemctl status pharmacam</code>; adres için <code>hostname -I</code> veya <code>&lt;ad&gt;.local</code> kullanın. Modemden Pi'ye sabit IP verin.</td></tr>
+<tr><td>Saatler yanlış</td><td>Pi'nin saati senkronize değil</td><td><code>timedatectl</code> ile saat dilimini (Europe/Istanbul) ve NTP'yi kontrol edin.</td></tr>
+<tr><td>CPU sıcaklığı &gt; 75 °C</td><td>Soğutma yetersiz</td><td>Active Cooler takın, kasaya hava deliği açın.</td></tr>
+<tr><td>Sayılar gece de artıyor</td><td>Işık yansıması, poster/manken</td><td>O bölgeyi kadrajdan çıkarın veya kamerayı yeniden yönlendirin.</td></tr>
+<tr><td>Bulut eşitleme hata veriyor</td><td>Anahtar yanlış, internet yok</td><td>Ayarlar sekmesindeki hata mesajına bakın. HTTP 401 alıyorsanız anahtar yanlıştır. Veri kaybolmaz.</td></tr>
+</table>
+<div class="keep"><h2>Güncelleme ve yedekleme</h2>
+<pre><span class="c"># güncelleme (ayarlar ve veriler korunur)</span>
+cd /opt/pharmacam &amp;&amp; git pull &amp;&amp; ./deploy/install.sh
+<span class="c"># veritabanı yedeği</span>
+sqlite3 /opt/pharmacam/data/pharmacam.db ".backup '/home/pi/yedek-$(date +%F).db'"</pre></div>
+
+<!-- ======================================================== 14 -->
+<h1 class="chap"><span class="n">14</span>Gizlilik ve KVKK</h1>
+<p>PharmaCam <b>gizlilik odaklı tasarlanmıştır</b>:</p>
+<ul>
+  <li>Kişi tespiti kameranın çipinde yapılır. <b>Görüntü diske yazılmaz</b>, buluta gönderilmez.</li>
+  <li><b>Yüz tanıma, kimlik tespiti, biyometrik işlem yapılmaz.</b> Kişiler yalnızca geçici bir takip numarasıyla izlenir. Kişi kadrajdan çıktığında numara anlamını yitirir.</li>
+  <li>Saklanan veriler sayılar, süreler, bölge adları ve yoğunluk ızgarasıdır.</li>
+  <li>Canlı görüntü kapatılabilir. Açıkken kişiler varsayılan olarak bulanıklaştırılır. Isı haritası ve bölge editörü için kullanılan arka plan, içeride kimse yokken alınır.</li>
+  <li>Panel şifreyle korunur. Bulut gönderimi cihaza özel anahtarla yapılır ve HTTPS kullanılmalıdır.</li>
+</ul>
+<div class="warn"><b>Hukuki not</b>Kamera ile anlık görüntü işleme, kayıt olmasa da KVKK kapsamında değerlendirilebilir. Eczane girişine bir <b>aydınlatma metni</b> asılmalı ve veri sorumlusu bilgileri belirtilmelidir. Aşağıdaki metin örnektir, hukuki danışmanlık yerine geçmez.</div>
+<div class="sign">
+  <div class="ic">📷</div>
+  <h4>Bu alanda anonim müşteri sayımı yapılmaktadır</h4>
+  <p style="margin:0 0 2mm">Hizmet kalitemizi ve bekleme sürelerini iyileştirmek amacıyla, yapay zekâ destekli bir sensör yalnızca
+  <b>kişi sayısı ve bekleme süresi</b> gibi anonim istatistikler üretir. <b>Görüntü kaydedilmez, yüz tanıma yapılmaz</b>, kişisel veri saklanmaz.</p>
+  <p class="small" style="margin:0">Veri sorumlusu: ………… Eczanesi · Adres: ………… · İletişim: …………<br>6698 sayılı KVKK kapsamındaki haklarınız için bizimle iletişime geçebilirsiniz.</p>
+</div>
+
+<!-- ======================================================== APPENDIX -->
+<h1 class="chap"><span class="n">E</span>Ek: Yapılandırma dosyası başvurusu</h1>
+<p>Dosya: <code>/opt/pharmacam/config/pharmacam.yaml</code>. Değişiklikten sonra <code>sudo systemctl restart pharmacam</code> komutunu çalıştırın.
+Bölgeler ve işaretli (●) ayarlar panelden değiştirilebilir, yeniden başlatma gerektirmez.</p>
+<table>
+<tr><th style="width:36%">Anahtar</th><th style="width:16%">Varsayılan</th><th>Açıklama</th></tr>
+<tr><td><code>device.id</code></td><td>seri no.</td><td>Benzersiz cihaz kimliği (hub'da kullanılır)</td></tr>
+<tr><td><code>device.pharmacy_name</code> ●</td><td>—</td><td>Panel ve raporlarda görünen ad</td></tr>
+<tr><td><code>camera.model</code></td><td>SSD MobileNetV2</td><td><code>/usr/share/imx500-models</code> içindeki bir nesne tespit modeli (.rpk)</td></tr>
+<tr><td><code>camera.width / height / fps</code></td><td>1280 / 960 / 15</td><td>İşlenen görüntü boyutu ve kare hızı</td></tr>
+<tr><td><code>camera.score_threshold</code></td><td>0.45</td><td>Kişi tespiti için en düşük güven</td></tr>
+<tr><td><code>camera.hflip / vflip</code></td><td>false</td><td>Ters montaj için görüntüyü çevir</td></tr>
+<tr><td><code>camera.watchdog_seconds</code></td><td>15</td><td>Kare gelmezse servisin kendini yeniden başlatma süresi</td></tr>
+<tr><td><code>tracker.max_lost_seconds</code></td><td>2.0</td><td>Görünmeyen kişinin takibinin bitme süresi</td></tr>
+<tr><td><code>staff.white_ratio_threshold</code> ●</td><td>0.32</td><td>Önlük eşiği</td></tr>
+<tr><td><code>staff.staff_zone_ratio</code> ●</td><td>0.6</td><td>Zamanının bu oranı tezgâh arkasında geçen kişi personeldir</td></tr>
+<tr><td><code>analytics.occupancy_mode</code> ●</td><td>hybrid</td><td><code>visible</code>: yalnız görünen, <code>counter</code>: kapı sayacı, <code>hybrid</code>: ikisinin büyüğü</td></tr>
+<tr><td><code>analytics.min_zone_dwell_seconds</code> ●</td><td>3</td><td>Rafta "durdu" sayılma süresi</td></tr>
+<tr><td><code>analytics.min_queue_seconds</code> ●</td><td>3</td><td>Sıraya girmiş sayılma süresi</td></tr>
+<tr><td><code>analytics.empty_reset_seconds</code></td><td>90</td><td>Mağaza boş görünürse sayaç sıfırlama süresi</td></tr>
+<tr><td><code>storage.retention_days</code></td><td>400</td><td>Verilerin saklanacağı gün sayısı</td></tr>
+<tr><td><code>server.port / username / password</code></td><td>8080 / admin / rastgele</td><td>Panel adresi ve girişi</td></tr>
+<tr><td><code>server.live_view</code> ● · <code>server.blur_people</code> ●</td><td>true · true</td><td>Canlı görüntü ve bulanıklaştırma</td></tr>
+<tr><td><code>reports.opening_hour / closing_hour</code> ●</td><td>8 / 22</td><td>Grafik aralığı ve otomatik rapor saati</td></tr>
+<tr><td><code>sync.*</code></td><td>kapalı</td><td>Hub adresi, cihaz anahtarı, gönderim aralığı (Bölüm 10)</td></tr>
+</table>
+<p class="small">PharmaCam v1.0 · Kaynak kod: github.com/umutcan-integrity/pharmacam · Bu kılavuz depodaki <code>docs/kilavuz.html</code> dosyasından üretilir.</p>
+</body>
+</html>

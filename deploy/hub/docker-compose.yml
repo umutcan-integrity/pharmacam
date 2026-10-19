@@ -1,0 +1,19 @@
+# docker compose -f deploy/hub/docker-compose.yml up -d
+# Önüne HTTPS için Caddy/Traefik/nginx koyun (cihaz anahtarları açık ağda düz HTTP ile gönderilmemeli).
+services:
+  hub:
+    build:
+      context: ../..
+      dockerfile: deploy/hub/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - hub-data:/data
+    environment:
+      # cihaz_kimligi:gizli_anahtar çiftleri, virgülle ayrılmış
+      PHARMACAM_HUB_TOKENS: "pharmacam-5b7cf2:BURAYA-UZUN-RASTGELE-ANAHTAR"
+      PHARMACAM_HUB_ADMIN_USER: admin
+      PHARMACAM_HUB_ADMIN_PASSWORD: "BURAYA-PANEL-SIFRESI"
+volumes:
+  hub-data:

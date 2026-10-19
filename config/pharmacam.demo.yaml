@@ -1,0 +1,68 @@
+# PharmaCam — canlı demo yapılandırması (simülatör, her saatte yoğun trafik)
+# Çalıştırma:  python -m pharmacam -c config/pharmacam.demo.yaml run
+device:
+  id: sim-001
+  pharmacy_name: Demo Eczanesi
+  timezone: Europe/Istanbul
+
+camera:
+  source: simulator
+
+simulator:
+  fps: 10
+  speed: 1.0
+  realtime: true
+  seed: 7
+  width: 640
+  height: 480
+  staff: 2
+  arrival_scale: 1.0
+  hour_override: 18          # gece de yoğun saat trafiği
+
+analytics:
+  min_queue_seconds: 4.0
+
+storage:
+  path: data/sim.db
+
+server:
+  port: 8080
+  password: ""
+
+reports:
+  dir: data/sim-reports
+
+zones:
+  - id: kapi
+    type: entrance
+    name: Giriş Kapısı
+    line: [[0.03, 0.93], [0.33, 0.93]]
+    inside_point: [0.5, 0.5]
+  - id: tezgah
+    type: service
+    name: Tezgâh (Hizmet)
+    polygon: [[0.38, 0.385], [0.72, 0.385], [0.72, 0.48], [0.38, 0.48]]
+  - id: sira
+    type: queue
+    name: Sıra Alanı
+    polygon: [[0.45, 0.48], [0.65, 0.48], [0.65, 0.85], [0.45, 0.85]]
+  - id: personel
+    type: staff
+    name: Tezgâh Arkası
+    polygon: [[0.34, 0.12], [0.76, 0.12], [0.76, 0.34], [0.34, 0.34]]
+  - id: derma
+    type: shelf
+    name: Dermokozmetik
+    polygon: [[0.0, 0.30], [0.17, 0.30], [0.17, 0.78], [0.0, 0.78]]
+  - id: vitamin
+    type: shelf
+    name: Vitamin & Takviye
+    polygon: [[0.80, 0.30], [1.0, 0.30], [1.0, 0.70], [0.80, 0.70]]
+  - id: bebek
+    type: shelf
+    name: Anne & Bebek
+    polygon: [[0.76, 0.72], [1.0, 0.72], [1.0, 0.95], [0.76, 0.95]]
+  - id: otc
+    type: shelf
+    name: Ağrı Kesici / OTC
+    polygon: [[0.20, 0.30], [0.36, 0.30], [0.36, 0.47], [0.20, 0.47]]

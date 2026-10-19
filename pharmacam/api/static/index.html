@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PharmaCam Paneli</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f8a5f'/%3E%3Cpath d='M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">✚</span>
+    <div>
+      <div class="brand-name">PharmaCam</div>
+      <div class="brand-sub" id="pharmacy-name">—</div>
+    </div>
+  </div>
+  <div class="status" id="status-pill"><span class="dot"></span><span id="status-text">Bağlanıyor…</span></div>
+</header>
+
+<nav class="tabs" id="tabs" role="tablist">
+  <button data-tab="live" class="active">Canlı</button>
+  <button data-tab="analysis">Günlük Analiz</button>
+  <button data-tab="shelves">Raflar</button>
+  <button data-tab="queue">Sıra</button>
+  <button data-tab="heatmap">Isı Haritası</button>
+  <button data-tab="forecast">Tahmin</button>
+  <button data-tab="visits">Ziyaretler</button>
+  <button data-tab="reports">Raporlar</button>
+  <button data-tab="zones">Bölgeler</button>
+  <button data-tab="settings">Ayarlar</button>
+</nav>
+
+<main>
+  <!-- ============================== LIVE -->
+  <section id="tab-live" class="tab active">
+    <div class="tiles">
+      <div class="tile hero"><div class="label">Şu an içeride</div><div class="value" id="lv-occ">—</div><div class="sub">müşteri</div></div>
+      <div class="tile"><div class="label">Sırada bekleyen</div><div class="value" id="lv-queue">—</div><div class="sub" id="lv-queue-sub">en uzun bekleme —</div></div>
+      <div class="tile"><div class="label">Görevdeki personel</div><div class="value" id="lv-staff">—</div><div class="sub">beyaz önlüklü</div></div>
+      <div class="tile"><div class="label">Bugün giren</div><div class="value" id="lv-in">—</div><div class="sub" id="lv-in-sub">—</div></div>
+      <div class="tile"><div class="label">Bugün çıkan</div><div class="value" id="lv-out">—</div><div class="sub" id="lv-fps">—</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h2>Canlı görüntü</h2><span class="muted small">kişiler bulanıklaştırılır · görüntü kaydedilmez</span></div>
+        <div class="live-wrap"><img id="live-img" alt="Canlı kamera görüntüsü, bölgeler ve kişi kutuları ile"><div id="live-off" class="live-off hidden"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Bölgelerde şu an</h2></div>
+        <ul class="zone-live" id="zone-live"></ul>
+        <div class="card-head mt"><h2>Bugün öne çıkanlar</h2></div>
+        <ul class="insights" id="live-insights"></ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Bugün saatlik müşteri girişi</h2></div>
+      <div class="chart"><canvas id="ch-live-hourly"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ============================== ANALYSIS -->
+  <section id="tab-analysis" class="tab">
+    <div class="filters"><label>Gün <select id="an-day" class="day-select"></select></label></div>
+    <div class="tiles" id="an-tiles"></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><h2>Saatlik müşteri girişi</h2></div><div class="chart"><canvas id="ch-an-entries"></canvas></div></div>
+      <div class="card"><div class="card-head"><h2>Ortalama içerideki müşteri</h2></div><div class="chart"><canvas id="ch-an-occ"></canvas></div></div>
+    </div>
+    <div class="card"><div class="card-head"><h2>Son 30 gün — günlük müşteri</h2><span class="muted small">çubuğa tıklayarak o güne gidin</span></div><div class="chart"><canvas id="ch-an-daily"></canvas></div></div>
+    <div class="card"><div class="card-head"><h2>Otomatik değerlendirme</h2></div><ul class="insights" id="an-insights"></ul></div>
+  </section>
+
+  <!-- ============================== SHELVES -->
+  <section id="tab-shelves" class="tab">
+    <div class="filters">
+      <div class="seg" id="sh-range"><button data-days="1" class="active">Bugün</button><button data-days="7">7 gün</button><button data-days="30">30 gün</button></div>
+    </div>
+    <div class="card"><div class="card-head"><h2>Raf önünde durma ve geçme</h2><span class="muted small">duruş = en az 3 sn bekleme</span></div><div class="chart tall"><canvas id="ch-shelves"></canvas></div></div>
+    <div class="card"><div class="card-head"><h2>Raf tablosu</h2></div><div class="table-wrap"><table id="tb-shelves"></table></div></div>
+  </section>
+
+  <!-- ============================== QUEUE -->
+  <section id="tab-queue" class="tab">
+    <div class="filters"><label>Gün <select id="q-day" class="day-select"></select></label></div>
+    <div class="tiles" id="q-tiles"></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><h2>Saatlik ortalama bekleme (dk)</h2></div><div class="chart"><canvas id="ch-q-hour"></canvas></div></div>
+      <div class="card"><div class="card-head"><h2>Bekleme süresi dağılımı</h2></div><div class="chart"><canvas id="ch-q-hist"></canvas></div></div>
+    </div>
+    <div class="card"><div class="card-head"><h2>Saatlik en uzun sıra (kişi)</h2></div><div class="chart"><canvas id="ch-q-max"></canvas></div></div>
+  </section>
+
+  <!-- ============================== HEATMAP -->
+  <section id="tab-heatmap" class="tab">
+    <div class="filters">
+      <div class="seg" id="hm-range"><button data-days="1" class="active">Bugün</button><button data-days="7">7 gün</button><button data-days="30">30 gün</button></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Müşteri yoğunluk haritası</h2><span class="legend-ramp"><span>az</span><i></i><span>yoğun</span></span></div>
+      <div class="heat-wrap"><img id="hm-img" alt="Mağaza ısı haritası"></div>
+      <p class="muted small">Müşterilerin ayak noktalarının bulunduğu konumda geçirdiği süre toplanır. Personel dahil edilmez.</p>
+    </div>
+  </section>
+
+  <!-- ============================== FORECAST -->
+  <section id="tab-forecast" class="tab">
+    <div class="forecast-days" id="fc-days"></div>
+    <div class="card">
+      <div class="card-head"><h2 id="fc-title">Saatlik tahmin</h2><span class="muted small" id="fc-meta"></span></div>
+      <div class="chart"><canvas id="ch-fc"></canvas></div>
+    </div>
+    <div class="card"><div class="card-head"><h2>Önerilen tezgâh personeli</h2><span class="muted small">%75 kullanım hedefiyle, ortalama hizmet süresine göre</span></div><div class="staff-row" id="fc-staff"></div></div>
+  </section>
+
+  <!-- ============================== VISITS -->
+  <section id="tab-visits" class="tab">
+    <div class="filters">
+      <label>Gün <select id="v-day" class="day-select"></select></label>
+      <label class="check"><input type="checkbox" id="v-staff"> Personeli göster</label>
+      <a class="btn ghost" id="v-csv" href="#">CSV indir</a>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Anonim ziyaret kayıtları</h2><span class="muted small">kimlik/yüz yok — yalnızca geçici takip numarası</span></div>
+      <div class="table-wrap"><table id="tb-visits"></table></div>
+    </div>
+  </section>
+
+  <!-- ============================== REPORTS -->
+  <section id="tab-reports" class="tab">
+    <div class="filters"><button class="btn" id="rep-make">Bugünün raporunu oluştur</button></div>
+    <div class="card"><div class="card-head"><h2>Günlük PDF raporları</h2><span class="muted small">her gün kapanış saatinde otomatik üretilir</span></div><ul class="reports" id="rep-list"></ul></div>
+  </section>
+
+  <!-- ============================== ZONES -->
+  <section id="tab-zones" class="tab">
+    <div class="zone-editor">
+      <div class="card">
+        <div class="card-head"><h2>Bölge düzenleyici</h2><span class="muted small" id="ze-hint">Bir bölge seçin veya yeni ekleyin</span></div>
+        <div class="ze-canvas-wrap"><canvas id="ze-canvas"></canvas></div>
+      </div>
+      <div class="card ze-side">
+        <div class="ze-add">
+          <select id="ze-type">
+            <option value="shelf">Raf</option><option value="queue">Sıra alanı</option><option value="service">Tezgâh (hizmet)</option>
+            <option value="staff">Tezgâh arkası (personel)</option><option value="entrance">Giriş kapısı (çizgi)</option>
+          </select>
+          <button class="btn" id="ze-new">+ Yeni bölge</button>
+        </div>
+        <ul class="ze-list" id="ze-list"></ul>
+        <div id="ze-form" class="ze-form hidden">
+          <label>Ad <input id="ze-name"></label>
+          <label>Kimlik <input id="ze-id"></label>
+          <p class="muted small" id="ze-help"></p>
+          <div class="row"><button class="btn ghost" id="ze-clear">Noktaları temizle</button><button class="btn danger" id="ze-del">Sil</button></div>
+        </div>
+        <button class="btn primary wide" id="ze-save">Kaydet ve uygula</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== SETTINGS -->
+  <section id="tab-settings" class="tab">
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><h2>Ayarlar</h2></div><form id="set-form" class="settings"></form><button class="btn primary" id="set-save">Kaydet</button></div>
+      <div class="card"><div class="card-head"><h2>Cihaz durumu</h2></div><dl class="health" id="health"></dl>
+        <p class="muted small">API belgeleri: <a href="docs" target="_blank" rel="noopener">/docs</a></p></div>
+    </div>
+  </section>
+</main>
+<div id="toast" class="toast hidden" role="status"></div>
+<footer class="foot">PharmaCam · eczaneler için çip üzerinde yapay zekâ · görüntü kaydedilmez</footer>
+<script src="static/vendor/chart.umd.min.js"></script>
+<script src="static/app.js"></script>
+</body>
+</html>

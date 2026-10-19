@@ -1,0 +1,22 @@
+[Unit]
+Description=PharmaCam eczane kamera analitigi
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+Group=video
+WorkingDirectory=@PREFIX@
+Environment=PYTHONUNBUFFERED=1
+Environment=PHARMACAM_CONFIG=@PREFIX@/config/pharmacam.yaml
+ExecStart=@PREFIX@/venv/bin/python -m pharmacam run
+# The process exits on a camera hang (watchdog); systemd brings it back.
+Restart=always
+RestartSec=5
+# Give the IMX500 firmware upload time on the first start.
+TimeoutStartSec=180
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target

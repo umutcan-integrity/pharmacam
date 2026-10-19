@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+data/
+config/pharmacam.yaml
+*.db
+*.db-*
+.pytest_cache/
+.DS_Store
+.claude/
+site/
+docs/build/
+pi_test.jpg
+pi_detect.jpg
+detect_demo.py
