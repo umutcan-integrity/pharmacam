@@ -102,5 +102,5 @@ tests/         birim + uçtan uca testler
 ## Gizlilik
 
 Kişi tespiti kamera çipinde yapılır. Görüntü diske yazılmaz ve buluta gönderilmez. Kişiler geçici bir takip numarasıyla izlenir.
-Saklanan veriler sayılar ve sürelerdir. Canlı görüntüde kişiler bulanıklaştırılır, istenirse canlı görüntü tamamen kapatılabilir.
+Saklanan veriler sayılar ve sürelerdir. Canlı görüntü yalnızca anlık izlenir, hiçbir kare kaydedilmez; istenirse kişiler bulanıklaştırılır ya da canlı görüntü tamamen kapatılır.
 Kılavuzun 14. bölümünde örnek KVKK aydınlatma metni bulunur.

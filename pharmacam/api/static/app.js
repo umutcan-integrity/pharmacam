@@ -165,6 +165,8 @@ async function loadLive() {
     data: { labels: rows.map((r) => hh(r.hour)), datasets: [barDs("Giriş", rows.map((r) => r.entries), css("--s1"))] },
   });
   renderInsights($("#live-insights"), ins);
+  $("#live-wrap").classList.toggle("clear", !S.info.blur_people);
+  $("#lv-note").textContent = S.info.blur_people ? "kişiler bulanık · görüntü kaydedilmez" : "görüntü kaydedilmez";
   liveSetMode(S.info.live_view ? LIVE.mode : "plan");
   await tickLive();
   S.liveTimer = setInterval(tickLive, 500);
@@ -173,7 +175,7 @@ async function loadLive() {
 }
 
 /* -------------------------------------------------------------- live view
- * The device sends a blurred frame plus people/zone data; the panel draws everything else
+ * The device sends the raw frame (people blurred only if configured) plus people/zone data; the panel draws everything else
  * on a canvas at display rate: tinted zones with live counts, glowing people with trails,
  * queue timers and staff chips. Positions arrive twice a second and are eased in between. */
 const LIVE = { people: new Map(), za: {}, last: null, raf: 0, mode: "cam", pulse: 0, entries: null, seq: null, i: -1, t: 0 };

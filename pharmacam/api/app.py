@@ -77,6 +77,7 @@ def create_app(rt) -> FastAPI:
             "days": store.days_with_data(),
             "today": timeutil.today(),
             "live_view": bool(cfg["server"]["live_view"]),
+            "blur_people": bool(cfg["server"]["blur_people"]),
             "opening_hour": cfg["reports"]["opening_hour"],
             "closing_hour": cfg["reports"]["closing_hour"],
         }
@@ -96,7 +97,7 @@ def create_app(rt) -> FastAPI:
         if img is None:
             return None
         snap = engine.snapshot()
-        if raw:  # people blurred, no drawings: the dashboard draws its own overlay
+        if raw:  # no drawings (the dashboard draws its own overlay); people blurred if configured
             out = blur_boxes(img, [t["box"] for t in snap["tracks"]]) if cfg["server"]["blur_people"] else img
         else:
             out = annotate(img, snap, cfg.zones, blur=bool(cfg["server"]["blur_people"]))
@@ -104,7 +105,7 @@ def create_app(rt) -> FastAPI:
 
     @app.get("/api/live.jpg", tags=["Canlı"], dependencies=[Depends(auth)])
     def live_jpg(raw: bool = False):
-        """Current frame. `raw=true`: blurred people only (the panel overlays zones and people itself)."""
+        """Current frame (never stored). `raw=true`: no drawings — the panel overlays zones and people itself."""
         if not cfg["server"]["live_view"]:
             raise HTTPException(403, "Canlı görüntü kapalı")
         data = _live_jpeg(raw)

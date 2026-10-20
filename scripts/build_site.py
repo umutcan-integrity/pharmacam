@@ -98,6 +98,7 @@ def main() -> None:
 
     info = client.get("/api/info").json()
     info["live_view"] = True
+    info["blur_people"] = False
     (DATA / (api_key("/api/info") + ".json")).write_text(json.dumps(info, ensure_ascii=False))
     demo_days = info["days"]
     print(f"demo günü: {today}, {len(demo_days)} gün veri")
@@ -154,12 +155,11 @@ def main() -> None:
 
 
 def record_live(cfg: Config, today: str) -> None:
-    """Record a 40 s live sequence from the simulator: blurred frames (no drawings — the panel draws
+    """Record a 40 s live sequence from the simulator: plain frames (no drawings — the panel draws
     zones and people itself) and the matching live snapshots, both at 2 fps."""
     from pharmacam.analytics.engine import AnalyticsEngine
     from pharmacam.analytics.heatmap import encode_jpeg
     from pharmacam.camera.simulator import SimulatorSource
-    from pharmacam.render import blur_boxes
     from pharmacam.storage.db import Store
 
     live_dir = DATA / "live"
@@ -181,8 +181,7 @@ def record_live(cfg: Config, today: str) -> None:
         snap["entries_today"] = int(base["entries"] * 0.78) + live.entries_today
         snap["exits_today"] = snap["entries_today"] - live.occupancy
         seq.append(snap)
-        img = blur_boxes(frame.image, [t["box"] for t in snap["tracks"]])
-        (live_dir / f"frame_{len(seq) - 1:03d}.jpg").write_bytes(encode_jpeg(img, 72))
+        (live_dir / f"frame_{len(seq) - 1:03d}.jpg").write_bytes(encode_jpeg(frame.image, 72))
         if len(seq) >= LIVE_FRAMES:
             break
     (live_dir / "seq.json").write_text(json.dumps(seq, ensure_ascii=False, separators=(",", ":")))

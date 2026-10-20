@@ -53,7 +53,7 @@ server:
   username: admin
   password: "degistir-beni"    # panel şifresi — kurulumda değiştirin
   live_view: true
-  blur_people: true            # canlı görüntüde kişileri bulanıklaştır (KVKK)
+  blur_people: false           # true: canlı görüntüde kişileri bulanıklaştır (görüntü her durumda kaydedilmez)
 
 reports:
   dir: data/reports

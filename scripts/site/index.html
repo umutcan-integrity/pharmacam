@@ -453,7 +453,7 @@ footer a:hover { color: var(--ink); }
     <div class="device glass" id="device">
       <div class="screen">
         <div class="chrome"><span></span><span></span><span></span><em>pharmacam.local:8080</em></div>
-        <img src="assets/dark-canli.png" alt="PharmaCam canlı paneli: içerideki müşteri, sıra, personel ve bulanıklaştırılmış kamera görüntüsü" width="1280" height="1180">
+        <img src="assets/dark-canli.png" alt="PharmaCam canlı paneli: içerideki müşteri, sıra, personel ve kamera görüntüsü üzerinde canlı analiz" width="1280" height="1180">
       </div>
     </div>
     <div class="chip glass c1"><div class="k"><span class="dot"></span>Şu an içeride</div><div class="v" id="live-in">7</div><div class="s">müşteri</div></div>
@@ -631,7 +631,7 @@ footer a:hover { color: var(--ink); }
     <ul class="checks">
       <li class="glass"><svg><use href="#i-eye-off"/></svg><span><b>Görüntü diske yazılmaz</b> ve buluta gönderilmez. Tespit kameranın çipinde yapılır.</span></li>
       <li class="glass"><svg><use href="#i-shield"/></svg><span><b>Yüz tanıma yok, biyometri yok.</b> Kişiler yalnızca geçici bir takip numarasıyla izlenir.</span></li>
-      <li class="glass"><svg><use href="#i-check"/></svg><span>Canlı görüntüde <b>kişiler bulanıklaştırılır</b>; istenirse canlı görüntü tamamen kapatılır.</span></li>
+      <li class="glass"><svg><use href="#i-check"/></svg><span>Canlı görüntü <b>yalnızca izlenir, kaydedilmez</b>; istenirse kişiler bulanıklaştırılır ya da canlı görüntü tamamen kapatılır.</span></li>
       <li class="glass"><svg><use href="#i-doc"/></svg><span>Kurulum kılavuzunda <b>örnek KVKK aydınlatma metni</b> ve kapı etiketi bulunur.</span></li>
     </ul>
   </div>
@@ -693,7 +693,7 @@ footer a:hover { color: var(--ink); }
     <h2>Aklınızdaki <span class="grad">sorular.</span></h2>
   </div>
   <div class="faq">
-    <details class="glass reveal"><summary>Kamera müşterilerin görüntüsünü kaydediyor mu?</summary><p>Hayır. Kişi tespiti kameranın kendi çipinde yapılır ve görüntü diske yazılmaz. Saklanan veriler yalnızca sayılar ve sürelerdir. Panelde canlı görüntü isteğe bağlıdır ve açıkken kişiler bulanıklaştırılır.</p></details>
+    <details class="glass reveal"><summary>Kamera müşterilerin görüntüsünü kaydediyor mu?</summary><p>Hayır. Kişi tespiti kameranın kendi çipinde yapılır ve görüntü diske yazılmaz. Saklanan veriler yalnızca sayılar ve sürelerdir. Panelde canlı görüntü yalnızca anlık izlenir, hiçbir kare saklanmaz. İsterseniz kişiler bulanıklaştırılır ya da canlı görüntü tamamen kapatılır.</p></details>
     <details class="glass reveal"><summary>Kurulum ne kadar sürer, eczanede tadilat gerekir mi?</summary><p>Tadilat gerekmez. Cihaz tavana veya duvarın üst köşesine monte edilir, bir prize ve internete bağlanır. Yazılım kurulumu tek komutla yaklaşık 15 dakika sürer. Bölgeleri birlikte panelde çizeriz.</p></details>
     <details class="glass reveal"><summary>İnternet kesilirse ne olur?</summary><p>Cihaz internetsiz de tam çalışır, tüm veriyi kendi içinde saklar. Merkez panele gönderilecek veriler kuyrukta bekler ve bağlantı gelince eksiksiz aktarılır.</p></details>
     <details class="glass reveal"><summary>Personeli müşteriden nasıl ayırıyor?</summary><p>Beyaz önlük oranı ve tezgâh arkasında geçen süre birlikte değerlendirilir. Personel, müşteri istatistiklerine katılmaz; görevdeki personel sayısı ayrıca gösterilir.</p></details>

@@ -365,8 +365,8 @@ Arka planda kameranın gördüğü eczane görüntüsü vardır. İçeride kimse
 <h1 class="chap"><span class="n">8</span>Web paneli kullanımı</h1>
 <p>Panel telefon, tablet ve bilgisayarda çalışır, açık ve koyu temayı destekler. Ekranlar aşağıda sırayla anlatılmıştır.</p>
 <div class="keep"><h2>Canlı</h2>
-<figure><img class="shot" src="assets/panel-canli.png" style="width:100%"><figcaption>Şekil 6 — Canlı ekran: içerideki müşteri, sıra, görevdeki personel, bugünkü giriş/çıkış ve bölge doluluğu. Kişiler bulanıklaştırılmış görüntü üzerinde renkli noktalarla gösterilir: sıcak renk = müşteri, lila = personel; sıradakilerin yanında bekleme süresi yazar. “Görüntüsüz” modunda kamera görüntüsü hiç gösterilmez.</figcaption></figure></div>
-<p>Canlı görüntüde kişiler <b>bulanıklaştırılır</b> ve görüntü <b>kaydedilmez</b>. İsterseniz Ayarlar'dan canlı görüntüyü tamamen kapatabilirsiniz; sayaçlar çalışmaya devam eder.</p>
+<figure><img class="shot" src="assets/panel-canli.png" style="width:100%"><figcaption>Şekil 6 — Canlı ekran: içerideki müşteri, sıra, görevdeki personel, bugünkü giriş/çıkış ve bölge doluluğu. Kişiler kamera görüntüsü üzerinde renkli noktalarla gösterilir: sıcak renk = müşteri, lila = personel; sıradakilerin yanında bekleme süresi yazar. “Görüntüsüz” modunda kamera görüntüsü hiç gösterilmez.</figcaption></figure></div>
+<p>Canlı görüntü yalnızca anlık izlenir, <b>hiçbir kare kaydedilmez</b>. İsterseniz Ayarlar'dan kişileri bulanıklaştırabilir ya da canlı görüntüyü tamamen kapatabilirsiniz; sayaçlar çalışmaya devam eder.</p>
 
 <div class="keep"><h2>Günlük analiz</h2>
 <figure><img class="shot" src="assets/panel-analiz.png" style="width:100%"><figcaption>Şekil 7 — Bir günün özeti, saatlik giriş, ortalama doluluk, son 30 gün ve otomatik değerlendirme.</figcaption></figure></div>
@@ -445,7 +445,7 @@ Kimlik doğrulama HTTP Basic'tir (panel kullanıcısı); <code>/api/health</code
 <tr><th style="width:38%">Uç nokta</th><th>Açıklama</th></tr>
 <tr><td><code>GET /api/health</code></td><td>Cihaz, kamera, fps, CPU sıcaklığı, disk, senkronizasyon durumu</td></tr>
 <tr><td><code>GET /api/live</code></td><td>Anlık: içerideki kişi, sıra uzunluğu ve bekleme süreleri, personel, bölge doluluğu, takip edilen kişiler</td></tr>
-<tr><td><code>GET /api/live.jpg</code> · <code>/api/live.mjpg</code></td><td>Kişileri bulanıklaştırılmış canlı görüntü / akış</td></tr>
+<tr><td><code>GET /api/live.jpg</code> · <code>/api/live.mjpg</code></td><td>Canlı görüntü / akış (kaydedilmez; <code>blur_people</code> açıksa kişiler bulanık)</td></tr>
 <tr><td><code>GET /api/stream</code></td><td>Server-Sent Events: saniyede bir canlı metrik</td></tr>
 <tr><td><code>GET /api/summary?day=</code></td><td>Günlük göstergeler</td></tr>
 <tr><td><code>GET /api/hourly?day=</code> · <code>/api/minutes?day=</code></td><td>Saatlik / dakikalık seriler</td></tr>
@@ -534,7 +534,7 @@ sqlite3 /opt/pharmacam/data/pharmacam.db ".backup '/home/pi/yedek-$(date +%F).db
   <li>Kişi tespiti kameranın çipinde yapılır. <b>Görüntü diske yazılmaz</b>, buluta gönderilmez.</li>
   <li><b>Yüz tanıma, kimlik tespiti, biyometrik işlem yapılmaz.</b> Kişiler yalnızca geçici bir takip numarasıyla izlenir. Kişi kadrajdan çıktığında numara anlamını yitirir.</li>
   <li>Saklanan veriler sayılar, süreler, bölge adları ve yoğunluk ızgarasıdır.</li>
-  <li>Canlı görüntü kapatılabilir. Açıkken kişiler varsayılan olarak bulanıklaştırılır. Isı haritası ve bölge editörü için kullanılan arka plan, içeride kimse yokken alınır.</li>
+  <li>Canlı görüntü yalnızca izlenir, kaydedilmez; tamamen kapatılabilir ya da kişiler bulanıklaştırılabilir. Isı haritası ve bölge editörü için kullanılan arka plan, içeride kimse yokken alınır.</li>
   <li>Panel şifreyle korunur. Bulut gönderimi cihaza özel anahtarla yapılır ve HTTPS kullanılmalıdır.</li>
 </ul>
 <div class="warn"><b>Hukuki not</b>Kamera ile anlık görüntü işleme, kayıt olmasa da KVKK kapsamında değerlendirilebilir. Eczane girişine bir <b>aydınlatma metni</b> asılmalı ve veri sorumlusu bilgileri belirtilmelidir. Aşağıdaki metin örnektir, hukuki danışmanlık yerine geçmez.</div>
@@ -568,7 +568,7 @@ Bölgeler ve işaretli (●) ayarlar panelden değiştirilebilir, yeniden başla
 <tr><td><code>analytics.empty_reset_seconds</code></td><td>90</td><td>Mağaza boş görünürse sayaç sıfırlama süresi</td></tr>
 <tr><td><code>storage.retention_days</code></td><td>400</td><td>Verilerin saklanacağı gün sayısı</td></tr>
 <tr><td><code>server.port / username / password</code></td><td>8080 / admin / rastgele</td><td>Panel adresi ve girişi</td></tr>
-<tr><td><code>server.live_view</code> ● · <code>server.blur_people</code> ●</td><td>true · true</td><td>Canlı görüntü ve bulanıklaştırma</td></tr>
+<tr><td><code>server.live_view</code> ● · <code>server.blur_people</code> ●</td><td>true · false</td><td>Canlı görüntü ve kişileri bulanıklaştırma</td></tr>
 <tr><td><code>reports.opening_hour / closing_hour</code> ●</td><td>8 / 22</td><td>Grafik aralığı ve otomatik rapor saati</td></tr>
 <tr><td><code>sync.*</code></td><td>kapalı</td><td>Hub adresi, cihaz anahtarı, gönderim aralığı (Bölüm 10)</td></tr>
 </table>

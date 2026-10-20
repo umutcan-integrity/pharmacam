@@ -67,7 +67,7 @@ DEFAULTS: dict[str, Any] = {
         "username": "admin",
         "password": "",  # empty = no auth (only for development)
         "live_view": True,
-        "blur_people": True,
+        "blur_people": False,  # live view only; frames are never stored either way
     },
     "reports": {
         "dir": "data/reports",
