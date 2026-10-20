@@ -1,0 +1,16 @@
+{
+  "name": "pharmacam-hero",
+  "width": 1920,
+  "height": 1080,
+  "fps": 60,
+  "duration": 8,
+  "bpm": 120,
+  "speed": 1,
+  "subframes": 6,
+  "lang": "tr",
+  "fonts": {
+    "css": ["@fontsource/inter/500.css", "@fontsource/inter/700.css", "@fontsource/inter/800.css"],
+    "preload": ["500 40px Inter", "700 40px Inter", "800 40px Inter"],
+    "sample": "AaBbCcÇçDdEeFfGgĞğHhIıİiJjKkLlMmNnOoÖöPpRrSsŞşTtUuÜüVvYyZz0123456789≈+·:.,?!%"
+  }
+}

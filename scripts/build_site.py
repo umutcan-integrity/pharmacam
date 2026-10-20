@@ -146,6 +146,8 @@ def main() -> None:
     for f in [*(ROOT / "docs" / "assets").glob("*.png"), *(ROOT / "scripts" / "site" / "assets").glob("*.png")]:
         shutil.copy(f, SITE / "assets" / f.name)
     shutil.copy(ROOT / "docs" / "PharmaCam-Kurulum-Kilavuzu.pdf", SITE / "PharmaCam-Kurulum-Kilavuzu.pdf")
+    if (ROOT / "scripts" / "site" / "media").exists():  # ft-motion videos (see video/README.md)
+        shutil.copytree(ROOT / "scripts" / "site" / "media", SITE / "media")
     (SITE / ".nojekyll").write_text("")
     size = sum(f.stat().st_size for f in SITE.rglob("*") if f.is_file()) / 1e6
     print(f"site/ hazır: {n_files} API yanıtı, toplam {size:.1f} MB")
