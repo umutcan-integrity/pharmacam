@@ -152,6 +152,7 @@ function showTab(tab) {
   $$(".tab").forEach((s) => s.classList.toggle("active", s.id === `tab-${tab}`));
   if (location.hash !== `#${tab}`) history.replaceState(null, "", `#${tab}`);
   clearInterval(S.liveTimer);
+  if (tab !== "live") liveStop();
   LOADERS[tab]().catch((e) => { console.error(e); if (e.message !== "demo") toast("Veri alınamadı: " + e.message); });
 }
 
@@ -167,6 +168,7 @@ async function loadLive() {
   renderInsights($("#live-insights"), ins);
   $("#live-wrap").classList.toggle("clear", !S.info.blur_people);
   $("#lv-note").textContent = S.info.blur_people ? "kişiler bulanık · görüntü kaydedilmez" : "görüntü kaydedilmez";
+  liveConnect();
   liveSetMode(S.info.live_view ? LIVE.mode : "plan");
   await tickLive();
   S.liveTimer = setInterval(tickLive, 500);
@@ -178,7 +180,7 @@ async function loadLive() {
  * The device sends the raw frame (people blurred only if configured) plus people/zone data; the panel draws everything else
  * on a canvas at display rate: tinted zones with live counts, glowing people with trails,
  * queue timers and staff chips. Positions arrive twice a second and are eased in between. */
-const LIVE = { people: new Map(), za: {}, last: null, raf: 0, mode: "cam", pulse: 0, entries: null, seq: null, i: -1, t: 0 };
+const LIVE = { people: new Map(), za: {}, last: null, raf: 0, mode: "cam", pulse: 0, entries: null, seq: null, i: -1, t: 0, es: null, at: 0, streaming: false };
 try { LIVE.mode = localStorage.getItem("pc-live-mode") || "cam"; } catch { /* private mode */ }
 const ZC = { shelf: [255, 92, 138], queue: [255, 190, 64], service: [255, 150, 112], staff: [190, 152, 255], entrance: [255, 190, 64] };
 const ROSE = [255, 92, 138], GOLD = [255, 190, 64], LILAC = [190, 152, 255];
@@ -190,7 +192,35 @@ function liveSetMode(m) {
   $("#live-wrap").classList.toggle("plan", m === "plan");
   $$("#lv-mode button").forEach((b) => b.classList.toggle("active", b.dataset.m === m));
   try { localStorage.setItem("pc-live-mode", m); } catch { /* ignore */ }
+  if (!DEMO) liveVideo(m === "cam" && S.tab === "live" && !document.hidden);
 }
+
+/* Device: one MJPEG stream for the picture and one event stream for people/counters, both at
+ * camera rate, so the overlay moves with the video. Both stop when the tab is not on screen. */
+const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+function liveVideo(on) {
+  const img = $("#live-img");
+  on = on && S.info.live_view && (LIVE.last?.camera_ok ?? true);
+  if (on === LIVE.streaming) return;
+  LIVE.streaming = on;
+  img.onerror = on ? () => { LIVE.streaming = false; setTimeout(() => liveVideo(true), 2000); } : null;
+  img.src = on ? `api/live.mjpg?raw=1&t=${Date.now()}` : BLANK;   // a new src aborts the old stream
+}
+function liveConnect() {
+  if (DEMO || LIVE.es || !window.EventSource) return;
+  const es = (LIVE.es = new EventSource("api/live/events"));
+  es.onmessage = (e) => { LIVE.at = performance.now(); liveIngest(JSON.parse(e.data)); };
+  // after a reconnect (service restart) the old MJPEG connection is dead too: reopen it
+  es.onopen = () => { if (LIVE.streaming) { LIVE.streaming = false; liveVideo(LIVE.mode === "cam"); } };
+}
+function liveStop() {
+  if (LIVE.es) { LIVE.es.close(); LIVE.es = null; }
+  if (!DEMO) liveVideo(false);
+}
+document.addEventListener("visibilitychange", () => {
+  if (S.tab !== "live") return;
+  if (document.hidden) liveStop(); else { liveConnect(); liveVideo(LIVE.mode === "cam"); }
+});
 
 function liveIngest(lv) {
   const now = performance.now(), seen = new Set();
@@ -298,7 +328,7 @@ function liveDraw(now) {
   for (const [id, p] of LIVE.people) {
     // after a stall (hidden tab, slow device) jump straight to the target instead of streaking across
     if (rawDt > 0.25 || SHOT) { p.x = p.tx; p.y = p.ty; p.trail = []; }
-    const f = 1 - Math.exp(-dt * 7);
+    const f = 1 - Math.exp(-dt * (DEMO ? 7 : 22));
     p.x += (p.tx - p.x) * f; p.y += (p.ty - p.y) * f;
     if (now - p.lastTrail > 50) { p.trail.push([p.x, p.y]); if (p.trail.length > 22) p.trail.shift(); p.lastTrail = now; }
     const fadeIn = SHOT ? 1 : Math.min(1, (now - p.born) / 400), fadeOut = p.gone ? 1 - (now - p.gone) / 600 : 1;
@@ -340,11 +370,13 @@ async function tickLive() {
     LIVE.i = (LIVE.i + 1) % LIVE.seq.length;
     lv = LIVE.seq[LIVE.i];
     frame = `${DEMO.base}live/frame_${String(LIVE.i).padStart(3, "0")}.jpg`;
+  } else if (LIVE.es && LIVE.last && performance.now() - LIVE.at < 2500) {
+    lv = LIVE.last;                                   // pushed by /api/live/events
   } else {
     lv = await api("/api/live");
-    frame = `api/live.jpg?raw=1&t=${Date.now()}`;
+    liveIngest(lv);
   }
-  liveIngest(lv);
+  if (DEMO) liveIngest(lv);
   $("#lv-occ").textContent = lv.occupancy;
   $("#lv-queue").textContent = lv.queue_length;
   $("#lv-queue-sub").textContent = lv.queue_waits?.length ? `en uzun bekleme ${fmtDur(lv.queue_waits[0])}` : "sıra yok";
@@ -362,9 +394,11 @@ async function tickLive() {
   if (!lv.camera_ok && !DEMO) {
     off.textContent = "Kamera bağlı değil veya başlatılıyor. Sayaçlar ve geçmiş veriler kullanılabilir.";
     off.classList.remove("hidden");
+    liveVideo(false);
     return;
   }
   off.classList.add("hidden");
+  if (!DEMO) { liveVideo(LIVE.mode === "cam" && !document.hidden); return; }
   if (S.info.live_view && LIVE.mode === "cam" && !img._busy) {
     img._busy = true;
     const pre = new Image();

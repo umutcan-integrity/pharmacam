@@ -90,7 +90,9 @@ def create_app(rt) -> FastAPI:
         snap["zone_names"] = zone_names()
         return snap
 
-    def _live_jpeg(raw: bool = False) -> bytes | None:
+    def _live_jpeg(raw: bool = False, max_w: int | None = None, quality: int = 78) -> bytes | None:
+        import cv2
+
         from ..render import annotate, blur_boxes
 
         img = engine.last_frame
@@ -101,7 +103,10 @@ def create_app(rt) -> FastAPI:
             out = blur_boxes(img, [t["box"] for t in snap["tracks"]]) if cfg["server"]["blur_people"] else img
         else:
             out = annotate(img, snap, cfg.zones, blur=bool(cfg["server"]["blur_people"]))
-        return hm.encode_jpeg(out, 78)
+        h, w = out.shape[:2]
+        if max_w and w > max_w:
+            out = cv2.resize(out, (max_w, round(h * max_w / w)), interpolation=cv2.INTER_AREA)
+        return hm.encode_jpeg(out, quality)
 
     @app.get("/api/live.jpg", tags=["Canlı"], dependencies=[Depends(auth)])
     def live_jpg(raw: bool = False):
@@ -114,18 +119,44 @@ def create_app(rt) -> FastAPI:
         return Response(data, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
 
     @app.get("/api/live.mjpg", tags=["Canlı"], dependencies=[Depends(auth)])
-    async def live_mjpg(request: Request):
+    async def live_mjpg(request: Request, raw: bool = False, fps: float = Query(15, gt=0, le=30)):
+        """Continuous MJPEG stream (never stored): every new camera frame, at most `fps` per second.
+        `raw=true`: no drawings, 960 px wide — what the panel shows under its own overlay."""
         if not cfg["server"]["live_view"]:
             raise HTTPException(403, "Canlı görüntü kapalı")
 
         async def gen():
+            last_ts, period = None, 1.0 / fps
             while not await request.is_disconnected():
-                data = await asyncio.to_thread(_live_jpeg)
-                if data:
-                    yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + data + b"\r\n"
-                await asyncio.sleep(0.2)
+                t0 = time.monotonic()
+                ts = engine.last_frame_ts
+                if ts != last_ts:  # only frames the camera actually produced, no duplicates
+                    last_ts = ts
+                    data = await asyncio.to_thread(_live_jpeg, raw, 960 if raw else None, 72 if raw else 78)
+                    if data:
+                        yield (b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: "
+                               + str(len(data)).encode() + b"\r\n\r\n" + data + b"\r\n")
+                await asyncio.sleep(max(0.01, period - (time.monotonic() - t0)))
 
-        return StreamingResponse(gen(), media_type="multipart/x-mixed-replace; boundary=frame")
+        return StreamingResponse(gen(), media_type="multipart/x-mixed-replace; boundary=frame",
+                                 headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
+
+    @app.get("/api/live/events", tags=["Canlı"], dependencies=[Depends(auth)])
+    async def live_events(request: Request):
+        """Server-Sent Events: the full live snapshot (people included) on every processed frame,
+        up to 15 per second, plus a heartbeat each second while the camera is idle."""
+
+        async def gen():
+            last_ts, last_sent = None, 0.0
+            while not await request.is_disconnected():
+                ts, now = engine.last_frame_ts, time.monotonic()
+                if ts != last_ts or now - last_sent >= 1.0:
+                    last_ts, last_sent = ts, now
+                    yield f"data: {json.dumps(live(), default=float, separators=(',', ':'))}\n\n"
+                await asyncio.sleep(1 / 15)
+
+        return StreamingResponse(gen(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
     @app.get("/api/stream", tags=["Canlı"], dependencies=[Depends(auth)])
     async def stream(request: Request):
