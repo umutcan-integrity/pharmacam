@@ -151,7 +151,8 @@ main { max-width: 1320px; margin: 0 auto; padding: 20px 24px 8px; }
 .hud-pill b { font-size: 14px; font-variant-numeric: tabular-nums; }
 .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #30d158; box-shadow: 0 0 0 0 rgba(48,209,88,.6); animation: livePing 2s infinite; }
 @keyframes livePing { 70% { box-shadow: 0 0 0 8px rgba(48,209,88,0); } 100% { box-shadow: 0 0 0 0 rgba(48,209,88,0); } }
-.live-legend { position: absolute; right: 12px; bottom: 10px; justify-content: flex-end; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11.5px; color: #e5e5ea; z-index: 2; }
+.live-legend { position: absolute; right: 10px; bottom: 10px; justify-content: flex-end; padding: 6px 12px; border-radius: 999px;
+  background: rgba(12,12,14,.62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.08); display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11.5px; color: #e5e5ea; z-index: 2; }
 .live-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .live-legend .muted { color: rgba(245,245,247,.55); }
 .live-legend i { width: 9px; height: 9px; border-radius: 50%; }
