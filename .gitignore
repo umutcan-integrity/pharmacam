@@ -9,7 +9,7 @@ config/pharmacam.yaml
 .pytest_cache/
 .DS_Store
 .claude/
-site/
+/site/
 docs/build/
 pi_test.jpg
 pi_detect.jpg
