@@ -1,0 +1,72 @@
+# PharmaCam — kayıtlı bir mağaza videosu üzerinde canlı analiz (kamera yerine video döngüsü)
+# Video yerel kalır (data/ klasörü git'e girmez). Gerekli: pip install ultralytics
+# Çalıştırma:  python -m pharmacam -c config/pharmacam.video.yaml run   →  http://localhost:8081
+device:
+  id: video-001
+  pharmacy_name: Video Mağaza (köşe kamera)
+  timezone: Europe/Istanbul
+
+camera:
+  source: video
+
+video:
+  path: data/videos/store_corner.mp4
+  loop: true
+  fps: 15
+  model: data/yolo11n.pt
+  conf: 0.3
+
+analytics:
+  min_queue_seconds: 4.0
+
+# bu mağazada çalışanlar beyaz önlük giymiyor: personel yalnızca kasa arkasında durmasından anlaşılır
+staff:
+  white_ratio_threshold: 1.01
+
+storage:
+  path: data/video/pharmacam.db   # kendi klasörü: arka plan resmi de buraya yazılır
+
+server:
+  port: 8081
+  password: ""
+
+reports:
+  dir: data/video/reports
+
+# Bölgeler ayak noktasına göre çalışır: kişinin durduğu zemin alanı işaretlenir.
+zones:
+  - id: kapi
+    type: entrance
+    name: Giriş (paspas)
+    line: [[0.45, 1.0], [0.80, 0.56]]   # paspasın içe bakan kenarı, alt kenardan kapı kasasına
+    inside_point: [0.40, 0.50]
+  - id: kasa
+    type: service
+    name: Kasa
+    polygon: [[0.14, 0.24], [0.31, 0.24], [0.31, 0.50], [0.15, 0.50]]
+  - id: kasa_sira
+    type: queue
+    name: Kasa Sırası
+    polygon: [[0.14, 0.04], [0.31, 0.04], [0.31, 0.24], [0.14, 0.24]]
+  - id: kasa_arkasi
+    type: staff
+    name: Kasa Arkası
+    polygon: [[0.0, 0.12], [0.13, 0.12], [0.13, 0.60], [0.0, 0.60]]
+  - id: arka_reyon
+    type: shelf
+    name: Arka Duvar Reyonu
+    # stantların arkasındakilerin ayağı görünmez, kutuları stantların üst hizasında biter:
+    # o şerit de arka koridor sayılır (stantların üstünde kimse durmaz)
+    polygon: [[0.31, 0.0], [0.66, 0.0], [0.66, 0.40], [0.34, 0.40]]
+  - id: oyuncak
+    type: shelf
+    name: Oyuncak & Oyun Reyonu
+    polygon: [[0.66, 0.20], [0.76, 0.20], [0.88, 0.58], [0.70, 0.66]]
+  - id: kampanya
+    type: shelf
+    name: Kampanya Standları
+    polygon: [[0.27, 0.52], [0.55, 0.62], [0.56, 0.92], [0.30, 0.92]]
+  - id: kartlar
+    type: shelf
+    name: Kartlar (Sol Duvar)
+    polygon: [[0.06, 0.61], [0.22, 0.61], [0.27, 0.98], [0.10, 0.98]]

@@ -19,6 +19,7 @@ const ZONE_TYPES = {  // one palette across panel, live view and film
   service: { name: "Tezgâh", color: "#ff9670" },
   staff: { name: "Personel", color: "#be98ff" },
   shelf: { name: "Raf", color: "#ff5c8a" },
+  ignore: { name: "Yok say", color: "#8e8e93" },  // mirrors, posters, a TV: nothing there is counted
 };
 const LEVEL_ICON = { good: "✓", warn: "!", bad: "✕", info: "i" };
 
@@ -178,11 +179,11 @@ async function loadLive() {
 
 /* -------------------------------------------------------------- live view
  * The device sends the raw frame (people blurred only if configured) plus people/zone data; the panel draws everything else
- * on a canvas at display rate: tinted zones with live counts, glowing people with trails,
+ * on a canvas at display rate: tinted zones with live counts, people in thin boxes with labels,
  * queue timers and staff chips. Positions arrive twice a second and are eased in between. */
 const LIVE = { people: new Map(), za: {}, last: null, raf: 0, mode: "cam", pulse: 0, entries: null, seq: null, i: -1, t: 0, es: null, at: 0, streaming: false };
 try { LIVE.mode = localStorage.getItem("pc-live-mode") || "cam"; } catch { /* private mode */ }
-const ZC = { shelf: [255, 92, 138], queue: [255, 190, 64], service: [255, 150, 112], staff: [190, 152, 255], entrance: [255, 190, 64] };
+const ZC = { shelf: [255, 92, 138], queue: [255, 190, 64], service: [255, 150, 112], staff: [190, 152, 255], entrance: [255, 190, 64], ignore: [142, 142, 147] };
 const ROSE = [255, 92, 138], GOLD = [255, 190, 64], LILAC = [190, 152, 255];
 const rgbaJ = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -225,10 +226,10 @@ document.addEventListener("visibilitychange", () => {
 function liveIngest(lv) {
   const now = performance.now(), seen = new Set();
   for (const t of lv.tracks || []) {
-    const foot = t.foot || [(t.box[0] + t.box[2]) / 2, t.box[3]];
+    const b = t.box || [t.foot[0] - 0.03, t.foot[1] - 0.2, t.foot[0] + 0.03, t.foot[1]];
     let p = LIVE.people.get(t.id);
-    if (!p) { p = { id: t.id, x: foot[0], y: foot[1], trail: [], born: now, lastTrail: 0 }; LIVE.people.set(t.id, p); }
-    Object.assign(p, { tx: foot[0], ty: foot[1], staff: t.staff, wait: t.wait, waitAt: now, gone: 0 });
+    if (!p) { p = { id: t.id, b: [...b], born: now }; LIVE.people.set(t.id, p); }
+    Object.assign(p, { tb: b, staff: t.staff, wait: t.wait, n: t.n, inS: t.in_s ?? t.seen_s, at: now, gone: 0 });
     seen.add(t.id);
   }
   for (const p of LIVE.people.values()) if (!seen.has(p.id) && !p.gone) p.gone = now;
@@ -273,6 +274,11 @@ function liveDraw(now) {
   const cv = $("#live-canvas");
   if (!cv || S.tab !== "live") return;
   const wrap = $("#live-wrap"), dpr = Math.min(2, devicePixelRatio || 1);
+  const img = $("#live-img");
+  if (img.naturalWidth > 1 && img.naturalHeight > 1) {  // follow the stream: 4:3 camera, 16:9 recording...
+    const ar = `${img.naturalWidth} / ${img.naturalHeight}`;
+    if (wrap.dataset.ar !== ar) { wrap.dataset.ar = ar; wrap.style.aspectRatio = ar; }
+  }
   const W = wrap.clientWidth, H = wrap.clientHeight;
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
   const g = cv.getContext("2d");
@@ -324,40 +330,49 @@ function liveDraw(now) {
     chips.push({ text: label, dot: col, prio: 40 + n, at: [[x0 + 8 + lw / 2, y0 + 8 + lh / 2], [x0 + 8 + lw / 2, y1 - 8 - lh / 2], [(x0 + x1) / 2, (y0 + y1) / 2]] });
   }
 
-  // people
+  // people: a thin box with bright corners, the foot point the zones use, and a label
+  // (#n = n-th customer of the day · time in the shop, or the wait while in the queue)
   for (const [id, p] of LIVE.people) {
-    // after a stall (hidden tab, slow device) jump straight to the target instead of streaking across
-    if (rawDt > 0.25 || SHOT) { p.x = p.tx; p.y = p.ty; p.trail = []; }
-    const f = 1 - Math.exp(-dt * (DEMO ? 7 : 22));
-    p.x += (p.tx - p.x) * f; p.y += (p.ty - p.y) * f;
-    if (now - p.lastTrail > 50) { p.trail.push([p.x, p.y]); if (p.trail.length > 22) p.trail.shift(); p.lastTrail = now; }
-    const fadeIn = SHOT ? 1 : Math.min(1, (now - p.born) / 400), fadeOut = p.gone ? 1 - (now - p.gone) / 600 : 1;
+    if (rawDt > 0.25 || SHOT) p.b = [...p.tb];  // after a stall jump, don't sweep across
+    const f = 1 - Math.exp(-dt * (DEMO ? 7 : 18));
+    for (let i = 0; i < 4; i++) p.b[i] += (p.tb[i] - p.b[i]) * f;
+    const fadeIn = SHOT ? 1 : Math.min(1, (now - p.born) / 300), fadeOut = p.gone ? 1 - (now - p.gone) / 500 : 1;
     if (fadeOut <= 0) { LIVE.people.delete(id); continue; }
-    const al = fadeIn * fadeOut, X = p.x * W, Y = p.y * H;
+    const al = fadeIn * fadeOut;
+    const x1 = p.b[0] * W, y1 = p.b[1] * H, x2 = p.b[2] * W, y2 = p.b[3] * H, bw = x2 - x1, bh = y2 - y1;
+    if (bw < 3 || bh < 3) continue;
     const c1 = p.staff ? LILAC : ROSE, c2 = p.staff ? LILAC : GOLD;
-    for (let i = 1; i < p.trail.length; i++) {            // trail
-      const [ax, ay] = p.trail[i - 1], [bx, by] = p.trail[i];
-      g.strokeStyle = rgbaJ(c1, al * .45 * (i / p.trail.length)); g.lineWidth = 3 * k * (i / p.trail.length) + .5;
-      g.beginPath(); g.moveTo(ax * W, ay * H); g.lineTo(bx * W, by * H); g.stroke();
-    }
-    const R = 26 * k, hg = g.createRadialGradient(X, Y, 0, X, Y, R);
-    hg.addColorStop(0, rgbaJ(c1, .45 * al)); hg.addColorStop(1, rgbaJ(c2, 0));
-    g.fillStyle = hg; g.fillRect(X - R, Y - R, 2 * R, 2 * R);
-    if (!p.staff) {                                          // soft pulse
-      const ph = ((now / 1000 + id * 0.37) % 2.4) / 2.4;
-      g.strokeStyle = rgbaJ(c1, (1 - ph) * .35 * al); g.lineWidth = 1.5;
-      g.beginPath(); g.arc(X, Y, 8 * k + 20 * k * ph, 0, 7); g.stroke();
-    }
-    const cg = g.createLinearGradient(X - 7, Y - 7, X + 7, Y + 7);
+    const r = Math.min(7 * k, bw / 4, bh / 4);
+    g.beginPath();
+    g.moveTo(x1 + r, y1); g.arcTo(x2, y1, x2, y2, r); g.arcTo(x2, y2, x1, y2, r); g.arcTo(x1, y2, x1, y1, r); g.arcTo(x1, y1, x2, y1, r);
+    g.closePath();
+    g.fillStyle = rgbaJ(c1, .07 * al); g.fill();
+    g.strokeStyle = rgbaJ(c1, .45 * al); g.lineWidth = 1.1; g.stroke();
+    const L = Math.max(6, Math.min(16 * k, bw * .3, bh * .2));  // corner accents
+    const cg = g.createLinearGradient(x1, y1, x2, y2);
     cg.addColorStop(0, rgbaJ(c1, al)); cg.addColorStop(1, rgbaJ(c2, al));
-    g.fillStyle = cg; g.beginPath(); g.arc(X, Y, 6.5 * k + 1.5, 0, 7); g.fill();
-    g.strokeStyle = `rgba(12,12,14,${.9 * al})`; g.lineWidth = 2; g.stroke();
-    const off = 16 * k + 4;
-    if (p.staff) chips.push({ text: "Personel", dot: LILAC, prio: 20, alpha: al, at: [[X, Y - off - 6], [X, Y + off + 6]] });
-    else if (p.wait != null) {
-      const w = p.wait + (now - p.waitAt) / 1000, txt = `⏱ ${mmss(w)}`, [cw] = chipSize(g, txt, null, k);
-      chips.push({ text: txt, dot: null, prio: 30 + w / 60, alpha: al, at: [[X + off + cw / 2, Y], [X - off - cw / 2, Y], [X, Y - off - 6]] });
+    g.strokeStyle = cg; g.lineWidth = 2.6; g.lineCap = "round";
+    g.beginPath();
+    g.moveTo(x1, y1 + L); g.arcTo(x1, y1, x1 + L, y1, r); g.lineTo(x1 + L, y1);
+    g.moveTo(x2 - L, y1); g.arcTo(x2, y1, x2, y1 + L, r); g.lineTo(x2, y1 + L);
+    g.moveTo(x2, y2 - L); g.arcTo(x2, y2, x2 - L, y2, r); g.lineTo(x2 - L, y2);
+    g.moveTo(x1 + L, y2); g.arcTo(x1, y2, x1, y2 - L, r); g.lineTo(x1, y2 - L);
+    g.stroke(); g.lineCap = "butt";
+    g.fillStyle = rgbaJ(c2, .95 * al);  // foot point: where the person stands, what the zones count
+    g.beginPath(); g.arc((x1 + x2) / 2, y2, 2.5 + k, 0, 7); g.fill();
+    const el = (now - p.at) / 1000;
+    let txt;
+    if (p.staff) txt = "Personel";
+    else {
+      const parts = [];
+      if (p.n != null) parts.push(`#${p.n}`);
+      if (p.wait != null) parts.push(`⏱ ${mmss(p.wait + el)}`);
+      else if (p.inS != null) parts.push(mmss(p.inS + el));
+      txt = parts.join(" · ") || "Müşteri";
     }
+    const [cw, ch] = chipSize(g, txt, c1, k);
+    chips.push({ text: txt, dot: c1, prio: p.wait != null ? 70 : p.staff ? 55 : 60, alpha: al,
+                 at: [[x1 + cw / 2, y1 - ch / 2 - 4], [x1 + cw / 2 + 4, y1 + ch / 2 + 4], [x2 - cw / 2, y2 + ch / 2 + 6]] });
   }
   placeChips(g, chips, k, W, H, reserved);
   LIVE.raf = requestAnimationFrame(liveDraw);
@@ -388,7 +403,7 @@ async function tickLive() {
   $("#lv-fps").textContent = lv.camera_ok ? `${lv.fps} kare/sn işleniyor${mdl ? ` · ${mdl}` : ""}` : "kamera beklemede";
   $("#hud-occ").textContent = lv.occupancy; $("#hud-q").textContent = lv.queue_length; $("#hud-st").textContent = lv.staff_on_duty;
   const names = lv.zone_names || {};
-  const zl = (S.info.zones || []).filter((z) => z.type !== "entrance");
+  const zl = (S.info.zones || []).filter((z) => z.type !== "entrance" && z.type !== "ignore");
   $("#zone-live").innerHTML = zl.map((z) => `<li><span class="sw" style="background:${ZONE_TYPES[z.type].color}"></span>${esc(names[z.id] || z.name)}<span class="muted small">${ZONE_TYPES[z.type].name}</span><span class="n">${lv.zone_counts?.[z.id] || 0}</span></li>`).join("");
 
   const img = $("#live-img"), off = $("#live-off");
@@ -687,7 +702,7 @@ function bindZoneEditor() {
   $("#ze-new").addEventListener("click", () => {
     const type = $("#ze-type").value;
     let n = 1;
-    const prefix = { shelf: "raf", queue: "sira", service: "tezgah", staff: "personel", entrance: "kapi" }[type];
+    const prefix = { shelf: "raf", queue: "sira", service: "tezgah", staff: "personel", entrance: "kapi", ignore: "yoksay" }[type];
     while (S.zones.some((z) => z.id === `${prefix}${n}`)) n++;
     const z = { id: `${prefix}${n}`, type, name: `${ZONE_TYPES[type].name} ${n}` };
     if (type === "entrance") { z.line = []; z.inside_point = null; } else z.polygon = [];

@@ -2,7 +2,7 @@ from .base import Detection, Frame, FrameSource
 
 
 def open_source(cfg) -> FrameSource:
-    """Create the frame source named in the config (imx500 or simulator)."""
+    """Create the frame source named in the config (imx500, simulator or a video file)."""
     kind = cfg["camera"]["source"]
     if kind == "imx500":
         from .imx500 import IMX500Source
@@ -12,6 +12,10 @@ def open_source(cfg) -> FrameSource:
         from .simulator import SimulatorSource
 
         return SimulatorSource(cfg)
+    if kind == "video":
+        from .video import VideoFileSource
+
+        return VideoFileSource(cfg)
     raise ValueError(f"Bilinmeyen kamera kaynağı: {kind}")
 
 
