@@ -9,23 +9,23 @@
    "true_entries": 92,
    "entries": 92,
    "true_exits": 89,
-   "exits": 89,
-   "visits": 91,
+   "exits": 88,
+   "visits": 90,
    "true_visitors": 88,
    "true_served": 81,
    "served": 79,
    "true_wait_s": 40.832882869390794,
-   "wait_s": 36.4,
-   "occ_mae": 0.10874074074074074,
+   "wait_s": 36.9,
+   "occ_mae": 0.2690925925925926,
    "occ_mean": 3.2735555555555558,
-   "queue_mae": 0.20264814814814816,
-   "ids_per_person": 1.2727272727272727,
-   "single_id_pct": 73.86363636363636,
-   "coverage_pct": 96.87516972226416,
-   "merged_tracks": 26,
+   "queue_mae": 0.1957962962962963,
+   "ids_per_person": 1.1136363636363635,
+   "single_id_pct": 92.04545454545455,
+   "coverage_pct": 96.87914560941728,
+   "merged_tracks": 10,
    "phantom_tracks": 0,
-   "id_switches": 66,
-   "tracker_ms": 0.05146146812088167
+   "id_switches": 34,
+   "tracker_ms": 0.08068757127168485
   },
   {
    "tracker": "sony_bytetrack",
@@ -52,7 +52,7 @@
    "merged_tracks": 22,
    "phantom_tracks": 0,
    "id_switches": 96,
-   "tracker_ms": 0.5059843395925041
+   "tracker_ms": 0.46700985837701914
   },
   {
    "tracker": "rf_bytetrack",
@@ -79,7 +79,7 @@
    "merged_tracks": 9,
    "phantom_tracks": 0,
    "id_switches": 26,
-   "tracker_ms": 0.29332358126433705
+   "tracker_ms": 0.26919460623348307
   },
   {
    "tracker": "rf_ocsort",
@@ -106,7 +106,7 @@
    "merged_tracks": 16,
    "phantom_tracks": 0,
    "id_switches": 46,
-   "tracker_ms": 0.4360461752156779
+   "tracker_ms": 0.404632983344426
   },
   {
    "tracker": "rf_botsort",
@@ -133,7 +133,7 @@
    "merged_tracks": 13,
    "phantom_tracks": 0,
    "id_switches": 22,
-   "tracker_ms": 0.4616596358569546
+   "tracker_ms": 0.4247571180037792
   },
   {
    "tracker": "ours",
@@ -148,19 +148,19 @@
    "visits": 100,
    "true_visitors": 106,
    "true_served": 91,
-   "served": 87,
+   "served": 88,
    "true_wait_s": 45.54794191004156,
-   "wait_s": 36.5,
-   "occ_mae": 0.8275185185185185,
+   "wait_s": 36.1,
+   "occ_mae": 0.9414444444444444,
    "occ_mean": 4.0664444444444445,
-   "queue_mae": 0.37475925925925924,
-   "ids_per_person": 1.2169811320754718,
-   "single_id_pct": 79.24528301886792,
-   "coverage_pct": 96.94950121045316,
-   "merged_tracks": 25,
+   "queue_mae": 0.38712962962962966,
+   "ids_per_person": 1.0566037735849056,
+   "single_id_pct": 94.33962264150944,
+   "coverage_pct": 96.9505611885322,
+   "merged_tracks": 12,
    "phantom_tracks": 0,
-   "id_switches": 65,
-   "tracker_ms": 0.05889809711219708
+   "id_switches": 26,
+   "tracker_ms": 0.09657289114181401
   },
   {
    "tracker": "sony_bytetrack",
@@ -187,7 +187,7 @@
    "merged_tracks": 19,
    "phantom_tracks": 0,
    "id_switches": 53,
-   "tracker_ms": 0.5604635094458461
+   "tracker_ms": 0.5125589883666382
   },
   {
    "tracker": "rf_bytetrack",
@@ -214,7 +214,7 @@
    "merged_tracks": 14,
    "phantom_tracks": 0,
    "id_switches": 30,
-   "tracker_ms": 0.32145051102378164
+   "tracker_ms": 0.2948600404639297
   },
   {
    "tracker": "rf_ocsort",
@@ -241,7 +241,7 @@
    "merged_tracks": 16,
    "phantom_tracks": 0,
    "id_switches": 43,
-   "tracker_ms": 0.47737207825951
+   "tracker_ms": 0.43947605963222924
   },
   {
    "tracker": "rf_botsort",
@@ -268,7 +268,7 @@
    "merged_tracks": 19,
    "phantom_tracks": 0,
    "id_switches": 27,
-   "tracker_ms": 0.508159034711921
+   "tracker_ms": 0.47221687266331475
   },
   {
    "tracker": "ours",
@@ -279,23 +279,23 @@
    "true_entries": 77,
    "entries": 77,
    "true_exits": 78,
-   "exits": 77,
+   "exits": 78,
    "visits": 75,
    "true_visitors": 77,
    "true_served": 69,
-   "served": 66,
+   "served": 67,
    "true_wait_s": 20.204811649046082,
-   "wait_s": 17.2,
-   "occ_mae": 0.2075,
+   "wait_s": 16.6,
+   "occ_mae": 0.07174074074074074,
    "occ_mean": 2.3534814814814813,
-   "queue_mae": 0.10698148148148148,
-   "ids_per_person": 1.1168831168831168,
-   "single_id_pct": 88.31168831168831,
-   "coverage_pct": 96.69686598256982,
-   "merged_tracks": 12,
+   "queue_mae": 0.1155925925925926,
+   "ids_per_person": 1.0,
+   "single_id_pct": 100.0,
+   "coverage_pct": 96.7010398251021,
+   "merged_tracks": 5,
    "phantom_tracks": 0,
-   "id_switches": 38,
-   "tracker_ms": 0.04133859532454086
+   "id_switches": 22,
+   "tracker_ms": 0.06321107786196214
   },
   {
    "tracker": "sony_bytetrack",
@@ -322,7 +322,7 @@
    "merged_tracks": 14,
    "phantom_tracks": 0,
    "id_switches": 63,
-   "tracker_ms": 0.4536031339117067
+   "tracker_ms": 0.4129852413887555
   },
   {
    "tracker": "rf_bytetrack",
@@ -349,7 +349,7 @@
    "merged_tracks": 5,
    "phantom_tracks": 0,
    "id_switches": 20,
-   "tracker_ms": 0.248448736539878
+   "tracker_ms": 0.22817657790491702
   },
   {
    "tracker": "rf_ocsort",
@@ -376,7 +376,7 @@
    "merged_tracks": 10,
    "phantom_tracks": 0,
    "id_switches": 40,
-   "tracker_ms": 0.37369054298701315
+   "tracker_ms": 0.3516428743971995
   },
   {
    "tracker": "rf_botsort",
@@ -403,7 +403,7 @@
    "merged_tracks": 5,
    "phantom_tracks": 0,
    "id_switches": 18,
-   "tracker_ms": 0.39168845952803233
+   "tracker_ms": 0.36145681663226614
   },
   {
    "tracker": "ours",
@@ -412,25 +412,25 @@
    "minutes": 60.0,
    "fps": 15,
    "true_entries": 92,
-   "entries": 88,
+   "entries": 89,
    "true_exits": 89,
-   "exits": 84,
-   "visits": 457,
+   "exits": 91,
+   "visits": 108,
    "true_visitors": 88,
    "true_served": 81,
-   "served": 259,
+   "served": 77,
    "true_wait_s": 40.832882869390794,
-   "wait_s": 1.6,
-   "occ_mae": 1.6907777777777777,
+   "wait_s": 26.3,
+   "occ_mae": 0.697462962962963,
    "occ_mean": 3.2735555555555558,
-   "queue_mae": 0.6120740740740741,
-   "ids_per_person": 7.329545454545454,
-   "single_id_pct": 2.272727272727273,
-   "coverage_pct": 80.60915544855843,
-   "merged_tracks": 184,
-   "phantom_tracks": 10,
-   "id_switches": 1216,
-   "tracker_ms": 0.04578484255385033
+   "queue_mae": 0.4418148148148148,
+   "ids_per_person": 2.7613636363636362,
+   "single_id_pct": 30.681818181818183,
+   "coverage_pct": 83.22991709372604,
+   "merged_tracks": 69,
+   "phantom_tracks": 1,
+   "id_switches": 418,
+   "tracker_ms": 0.08773852444439265
   },
   {
    "tracker": "sony_bytetrack",
@@ -448,7 +448,7 @@
    "served": 111,
    "true_wait_s": 40.832882869390794,
    "wait_s": 8.9,
-   "occ_mae": 0.8379629629629629,
+   "occ_mae": 0.7229444444444444,
    "occ_mean": 3.2735555555555558,
    "queue_mae": 0.5688148148148148,
    "ids_per_person": 3.3181818181818183,
@@ -457,7 +457,7 @@
    "merged_tracks": 106,
    "phantom_tracks": 3,
    "id_switches": 529,
-   "tracker_ms": 0.4993663640860986
+   "tracker_ms": 0.462122551020002
   },
   {
    "tracker": "rf_bytetrack",
@@ -475,7 +475,7 @@
    "served": 166,
    "true_wait_s": 40.832882869390794,
    "wait_s": 6.2,
-   "occ_mae": 0.9287407407407408,
+   "occ_mae": 0.8344074074074074,
    "occ_mean": 3.2735555555555558,
    "queue_mae": 0.6357222222222222,
    "ids_per_person": 6.306818181818182,
@@ -484,7 +484,7 @@
    "merged_tracks": 174,
    "phantom_tracks": 5,
    "id_switches": 1131,
-   "tracker_ms": 0.2986780943034251
+   "tracker_ms": 0.27746638283888053
   },
   {
    "tracker": "rf_ocsort",
@@ -496,13 +496,13 @@
    "entries": 84,
    "true_exits": 89,
    "exits": 87,
-   "visits": 226,
+   "visits": 217,
    "true_visitors": 88,
    "true_served": 81,
-   "served": 96,
+   "served": 84,
    "true_wait_s": 40.832882869390794,
-   "wait_s": 1.3,
-   "occ_mae": 0.9720925925925926,
+   "wait_s": 1.5,
+   "occ_mae": 0.9447407407407408,
    "occ_mean": 3.2735555555555558,
    "queue_mae": 0.6697407407407407,
    "ids_per_person": 3.1931818181818183,
@@ -511,7 +511,7 @@
    "merged_tracks": 91,
    "phantom_tracks": 3,
    "id_switches": 526,
-   "tracker_ms": 0.41814322723938085
+   "tracker_ms": 0.3841818378099965
   },
   {
    "tracker": "rf_botsort",
@@ -523,13 +523,13 @@
    "entries": 87,
    "true_exits": 89,
    "exits": 89,
-   "visits": 240,
+   "visits": 238,
    "true_visitors": 88,
    "true_served": 81,
    "served": 106,
    "true_wait_s": 40.832882869390794,
    "wait_s": 1.6,
-   "occ_mae": 0.9436111111111111,
+   "occ_mae": 0.956,
    "occ_mean": 3.2735555555555558,
    "queue_mae": 0.6867777777777778,
    "ids_per_person": 3.2613636363636362,
@@ -538,7 +538,7 @@
    "merged_tracks": 94,
    "phantom_tracks": 3,
    "id_switches": 526,
-   "tracker_ms": 0.39986360863635867
+   "tracker_ms": 0.37545988900280836
   },
   {
    "tracker": "ours",
@@ -549,23 +549,23 @@
    "true_entries": 106,
    "entries": 103,
    "true_exits": 100,
-   "exits": 104,
-   "visits": 544,
+   "exits": 99,
+   "visits": 129,
    "true_visitors": 106,
    "true_served": 91,
-   "served": 286,
+   "served": 91,
    "true_wait_s": 45.54794191004156,
-   "wait_s": 1.5,
-   "occ_mae": 0.9399814814814815,
+   "wait_s": 24.3,
+   "occ_mae": 0.7032962962962963,
    "occ_mean": 4.0664444444444445,
-   "queue_mae": 0.7886481481481481,
-   "ids_per_person": 7.59433962264151,
-   "single_id_pct": 5.660377358490566,
-   "coverage_pct": 81.14248790033928,
-   "merged_tracks": 193,
-   "phantom_tracks": 17,
-   "id_switches": 1548,
-   "tracker_ms": 0.05212529704699086
+   "queue_mae": 0.658,
+   "ids_per_person": 3.141509433962264,
+   "single_id_pct": 30.18867924528302,
+   "coverage_pct": 84.08687581254661,
+   "merged_tracks": 75,
+   "phantom_tracks": 3,
+   "id_switches": 741,
+   "tracker_ms": 0.09855991069559457
   },
   {
    "tracker": "sony_bytetrack",
@@ -583,7 +583,7 @@
    "served": 134,
    "true_wait_s": 45.54794191004156,
    "wait_s": 2.8,
-   "occ_mae": 0.6482777777777777,
+   "occ_mae": 0.5441111111111111,
    "occ_mean": 4.0664444444444445,
    "queue_mae": 0.8507037037037037,
    "ids_per_person": 3.6226415094339623,
@@ -592,7 +592,7 @@
    "merged_tracks": 116,
    "phantom_tracks": 6,
    "id_switches": 641,
-   "tracker_ms": 0.5489551823616408
+   "tracker_ms": 0.5239051476894895
   },
   {
    "tracker": "rf_bytetrack",
@@ -604,13 +604,13 @@
    "entries": 104,
    "true_exits": 100,
    "exits": 104,
-   "visits": 293,
+   "visits": 292,
    "true_visitors": 106,
    "true_served": 91,
    "served": 192,
    "true_wait_s": 45.54794191004156,
    "wait_s": 4.9,
-   "occ_mae": 0.8132407407407407,
+   "occ_mae": 0.7516851851851852,
    "occ_mean": 4.0664444444444445,
    "queue_mae": 0.9417222222222222,
    "ids_per_person": 6.349056603773585,
@@ -619,7 +619,7 @@
    "merged_tracks": 192,
    "phantom_tracks": 11,
    "id_switches": 1733,
-   "tracker_ms": 0.32118007212368493
+   "tracker_ms": 0.30054621158072864
   },
   {
    "tracker": "rf_ocsort",
@@ -631,22 +631,22 @@
    "entries": 102,
    "true_exits": 100,
    "exits": 101,
-   "visits": 282,
+   "visits": 276,
    "true_visitors": 106,
    "true_served": 91,
-   "served": 109,
+   "served": 102,
    "true_wait_s": 45.54794191004156,
-   "wait_s": 3.1,
-   "occ_mae": 0.5711481481481482,
+   "wait_s": 3.3,
+   "occ_mae": 0.5121296296296296,
    "occ_mean": 4.0664444444444445,
-   "queue_mae": 0.9110185185185186,
+   "queue_mae": 0.9063518518518519,
    "ids_per_person": 3.2358490566037736,
    "single_id_pct": 12.264150943396226,
    "coverage_pct": 74.68034799551721,
    "merged_tracks": 95,
    "phantom_tracks": 3,
    "id_switches": 568,
-   "tracker_ms": 0.4500612687347543
+   "tracker_ms": 0.4201889936725988
   },
   {
    "tracker": "rf_botsort",
@@ -658,13 +658,13 @@
    "entries": 103,
    "true_exits": 100,
    "exits": 103,
-   "visits": 282,
+   "visits": 279,
    "true_visitors": 106,
    "true_served": 91,
-   "served": 116,
+   "served": 112,
    "true_wait_s": 45.54794191004156,
    "wait_s": 1.2,
-   "occ_mae": 0.9197962962962963,
+   "occ_mae": 0.8812592592592593,
    "occ_mean": 4.0664444444444445,
    "queue_mae": 0.9167962962962963,
    "ids_per_person": 3.311320754716981,
@@ -673,7 +673,7 @@
    "merged_tracks": 95,
    "phantom_tracks": 5,
    "id_switches": 604,
-   "tracker_ms": 0.44183399813913704
+   "tracker_ms": 0.39980374357482007
   },
   {
    "tracker": "ours",
@@ -684,23 +684,23 @@
    "true_entries": 77,
    "entries": 77,
    "true_exits": 78,
-   "exits": 76,
-   "visits": 380,
+   "exits": 75,
+   "visits": 98,
    "true_visitors": 77,
    "true_served": 69,
-   "served": 207,
+   "served": 71,
    "true_wait_s": 20.204811649046082,
-   "wait_s": 1.2,
-   "occ_mae": 0.9284814814814815,
+   "wait_s": 12.7,
+   "occ_mae": 1.046314814814815,
    "occ_mean": 2.3534814814814813,
-   "queue_mae": 0.22912962962962963,
-   "ids_per_person": 5.636363636363637,
-   "single_id_pct": 6.4935064935064934,
-   "coverage_pct": 84.3725341929248,
-   "merged_tracks": 131,
-   "phantom_tracks": 7,
-   "id_switches": 837,
-   "tracker_ms": 0.04035150309209712
+   "queue_mae": 0.20424074074074075,
+   "ids_per_person": 2.012987012987013,
+   "single_id_pct": 45.45454545454545,
+   "coverage_pct": 85.66787525652673,
+   "merged_tracks": 50,
+   "phantom_tracks": 3,
+   "id_switches": 216,
+   "tracker_ms": 0.07440686981297201
   },
   {
    "tracker": "sony_bytetrack",
@@ -712,13 +712,13 @@
    "entries": 76,
    "true_exits": 78,
    "exits": 77,
-   "visits": 211,
+   "visits": 210,
    "true_visitors": 77,
    "true_served": 69,
    "served": 106,
    "true_wait_s": 20.204811649046082,
    "wait_s": 1.9,
-   "occ_mae": 0.7981296296296296,
+   "occ_mae": 0.6967407407407408,
    "occ_mean": 2.3534814814814813,
    "queue_mae": 0.21888888888888888,
    "ids_per_person": 2.8181818181818183,
@@ -727,7 +727,7 @@
    "merged_tracks": 72,
    "phantom_tracks": 2,
    "id_switches": 423,
-   "tracker_ms": 0.4566277148475853
+   "tracker_ms": 0.4563629205524059
   },
   {
    "tracker": "rf_bytetrack",
@@ -739,13 +739,13 @@
    "entries": 77,
    "true_exits": 78,
    "exits": 77,
-   "visits": 195,
+   "visits": 194,
    "true_visitors": 77,
    "true_served": 69,
    "served": 123,
    "true_wait_s": 20.204811649046082,
    "wait_s": 2.6,
-   "occ_mae": 1.4229444444444443,
+   "occ_mae": 1.3396666666666666,
    "occ_mean": 2.3534814814814813,
    "queue_mae": 0.276,
    "ids_per_person": 4.090909090909091,
@@ -754,7 +754,7 @@
    "merged_tracks": 111,
    "phantom_tracks": 8,
    "id_switches": 664,
-   "tracker_ms": 0.27279337685063687
+   "tracker_ms": 0.25720190764534184
   },
   {
    "tracker": "rf_ocsort",
@@ -766,13 +766,13 @@
    "entries": 76,
    "true_exits": 78,
    "exits": 78,
-   "visits": 217,
+   "visits": 211,
    "true_visitors": 77,
    "true_served": 69,
-   "served": 102,
+   "served": 93,
    "true_wait_s": 20.204811649046082,
-   "wait_s": 1.3,
-   "occ_mae": 0.6123333333333333,
+   "wait_s": 1.5,
+   "occ_mae": 0.40735185185185185,
    "occ_mean": 2.3534814814814813,
    "queue_mae": 0.25583333333333336,
    "ids_per_person": 2.727272727272727,
@@ -781,7 +781,7 @@
    "merged_tracks": 67,
    "phantom_tracks": 2,
    "id_switches": 446,
-   "tracker_ms": 0.39123450441359264
+   "tracker_ms": 0.3787889996590955
   },
   {
    "tracker": "rf_botsort",
@@ -799,7 +799,7 @@
    "served": 105,
    "true_wait_s": 20.204811649046082,
    "wait_s": 1.3,
-   "occ_mae": 0.7902222222222223,
+   "occ_mae": 0.7896111111111112,
    "occ_mean": 2.3534814814814813,
    "queue_mae": 0.25612962962962965,
    "ids_per_person": 2.831168831168831,
@@ -808,7 +808,7 @@
    "merged_tracks": 79,
    "phantom_tracks": 1,
    "id_switches": 430,
-   "tracker_ms": 0.3768113292527333
+   "tracker_ms": 0.3807715209431653
   },
   {
    "tracker": "ours",
@@ -817,25 +817,25 @@
    "minutes": 60.0,
    "fps": 15,
    "true_entries": 120,
-   "entries": 115,
+   "entries": 119,
    "true_exits": 116,
-   "exits": 101,
-   "visits": 1584,
+   "exits": 108,
+   "visits": 281,
    "true_visitors": 119,
    "true_served": 100,
-   "served": 672,
+   "served": 124,
    "true_wait_s": 134.8632047176361,
-   "wait_s": 0.1,
-   "occ_mae": 3.1226481481481483,
+   "wait_s": 13.3,
+   "occ_mae": 2.147037037037037,
    "occ_mean": 6.775666666666667,
-   "queue_mae": 3.7252222222222224,
-   "ids_per_person": 25.15126050420168,
-   "single_id_pct": 1.680672268907563,
-   "coverage_pct": 44.94954846990984,
-   "merged_tracks": 304,
-   "phantom_tracks": 17,
-   "id_switches": 3845,
-   "tracker_ms": 0.047634557960986125
+   "queue_mae": 3.373314814814815,
+   "ids_per_person": 9.033613445378151,
+   "single_id_pct": 5.882352941176471,
+   "coverage_pct": 51.479097719174774,
+   "merged_tracks": 194,
+   "phantom_tracks": 4,
+   "id_switches": 3217,
+   "tracker_ms": 0.11035370298756149
   },
   {
    "tracker": "sony_bytetrack",
@@ -847,13 +847,13 @@
    "entries": 116,
    "true_exits": 116,
    "exits": 103,
-   "visits": 715,
+   "visits": 714,
    "true_visitors": 119,
    "true_served": 100,
    "served": 297,
    "true_wait_s": 134.8632047176361,
    "wait_s": 0.6,
-   "occ_mae": 3.1659444444444444,
+   "occ_mae": 3.141351851851852,
    "occ_mean": 6.775666666666667,
    "queue_mae": 3.59112962962963,
    "ids_per_person": 9.697478991596638,
@@ -862,7 +862,7 @@
    "merged_tracks": 187,
    "phantom_tracks": 8,
    "id_switches": 1539,
-   "tracker_ms": 0.5315315825735323
+   "tracker_ms": 0.5369240129097037
   },
   {
    "tracker": "rf_bytetrack",
@@ -880,7 +880,7 @@
    "served": 611,
    "true_wait_s": 134.8632047176361,
    "wait_s": 1.0,
-   "occ_mae": 3.065722222222222,
+   "occ_mae": 3.074888888888889,
    "occ_mean": 6.775666666666667,
    "queue_mae": 3.739888888888889,
    "ids_per_person": 25.88235294117647,
@@ -889,7 +889,7 @@
    "merged_tracks": 497,
    "phantom_tracks": 21,
    "id_switches": 4679,
-   "tracker_ms": 0.30599432190259296
+   "tracker_ms": 0.3225685875696837
   },
   {
    "tracker": "rf_ocsort",
@@ -907,7 +907,7 @@
    "served": 283,
    "true_wait_s": 134.8632047176361,
    "wait_s": 0.1,
-   "occ_mae": 1.2393333333333334,
+   "occ_mae": 1.2291296296296297,
    "occ_mean": 6.775666666666667,
    "queue_mae": 3.6669074074074075,
    "ids_per_person": 7.168067226890757,
@@ -916,7 +916,7 @@
    "merged_tracks": 140,
    "phantom_tracks": 5,
    "id_switches": 1201,
-   "tracker_ms": 0.44800449870052506
+   "tracker_ms": 0.45246283729944414
   },
   {
    "tracker": "rf_botsort",
@@ -928,13 +928,13 @@
    "entries": 114,
    "true_exits": 116,
    "exits": 101,
-   "visits": 698,
+   "visits": 697,
    "true_visitors": 119,
    "true_served": 100,
    "served": 295,
    "true_wait_s": 134.8632047176361,
    "wait_s": 0.0,
-   "occ_mae": 2.794722222222222,
+   "occ_mae": 2.7711296296296295,
    "occ_mean": 6.775666666666667,
    "queue_mae": 3.635388888888889,
    "ids_per_person": 7.663865546218488,
@@ -943,7 +943,7 @@
    "merged_tracks": 141,
    "phantom_tracks": 8,
    "id_switches": 1245,
-   "tracker_ms": 0.43215694280742256
+   "tracker_ms": 0.4449671660388251
   },
   {
    "tracker": "ours",
@@ -952,25 +952,25 @@
    "minutes": 60.0,
    "fps": 15,
    "true_entries": 125,
-   "entries": 115,
+   "entries": 116,
    "true_exits": 114,
-   "exits": 108,
-   "visits": 1566,
+   "exits": 113,
+   "visits": 309,
    "true_visitors": 125,
    "true_served": 103,
-   "served": 692,
+   "served": 135,
    "true_wait_s": 69.75850952481761,
-   "wait_s": 0.3,
-   "occ_mae": 1.0609629629629629,
+   "wait_s": 7.8,
+   "occ_mae": 1.480962962962963,
    "occ_mean": 5.468,
-   "queue_mae": 1.9928333333333332,
-   "ids_per_person": 20.312,
-   "single_id_pct": 0.0,
-   "coverage_pct": 53.56961475879671,
-   "merged_tracks": 286,
-   "phantom_tracks": 24,
-   "id_switches": 3317,
-   "tracker_ms": 0.04870238905250854
+   "queue_mae": 1.8679814814814815,
+   "ids_per_person": 7.32,
+   "single_id_pct": 3.2,
+   "coverage_pct": 57.65935564499755,
+   "merged_tracks": 218,
+   "phantom_tracks": 2,
+   "id_switches": 2253,
+   "tracker_ms": 0.10800629090603993
   },
   {
    "tracker": "sony_bytetrack",
@@ -982,13 +982,13 @@
    "entries": 114,
    "true_exits": 114,
    "exits": 112,
-   "visits": 736,
+   "visits": 735,
    "true_visitors": 125,
    "true_served": 103,
    "served": 306,
    "true_wait_s": 69.75850952481761,
    "wait_s": 0.7,
-   "occ_mae": 1.325888888888889,
+   "occ_mae": 1.4202777777777778,
    "occ_mean": 5.468,
    "queue_mae": 1.8377407407407407,
    "ids_per_person": 8.336,
@@ -997,7 +997,7 @@
    "merged_tracks": 194,
    "phantom_tracks": 6,
    "id_switches": 1550,
-   "tracker_ms": 0.5053367450956203
+   "tracker_ms": 0.5161476882500143
   },
   {
    "tracker": "rf_bytetrack",
@@ -1015,7 +1015,7 @@
    "served": 579,
    "true_wait_s": 69.75850952481761,
    "wait_s": 1.3,
-   "occ_mae": 1.508537037037037,
+   "occ_mae": 1.5965740740740741,
    "occ_mean": 5.468,
    "queue_mae": 1.9933518518518518,
    "ids_per_person": 19.528,
@@ -1024,7 +1024,7 @@
    "merged_tracks": 451,
    "phantom_tracks": 21,
    "id_switches": 3650,
-   "tracker_ms": 0.2958976991412109
+   "tracker_ms": 0.31346653527105917
   },
   {
    "tracker": "rf_ocsort",
@@ -1036,13 +1036,13 @@
    "entries": 104,
    "true_exits": 114,
    "exits": 104,
-   "visits": 739,
+   "visits": 738,
    "true_visitors": 125,
    "true_served": 103,
    "served": 307,
    "true_wait_s": 69.75850952481761,
    "wait_s": 0.4,
-   "occ_mae": 1.5945555555555555,
+   "occ_mae": 1.6305740740740742,
    "occ_mean": 5.468,
    "queue_mae": 1.929037037037037,
    "ids_per_person": 7.224,
@@ -1051,7 +1051,7 @@
    "merged_tracks": 140,
    "phantom_tracks": 5,
    "id_switches": 1250,
-   "tracker_ms": 0.42669953570347624
+   "tracker_ms": 0.4303335328877438
   },
   {
    "tracker": "rf_botsort",
@@ -1063,13 +1063,13 @@
    "entries": 109,
    "true_exits": 114,
    "exits": 112,
-   "visits": 755,
+   "visits": 754,
    "true_visitors": 125,
    "true_served": 103,
    "served": 320,
    "true_wait_s": 69.75850952481761,
    "wait_s": 0.3,
-   "occ_mae": 1.7619444444444445,
+   "occ_mae": 1.8642407407407406,
    "occ_mean": 5.468,
    "queue_mae": 1.8954074074074074,
    "ids_per_person": 7.656,
@@ -1078,7 +1078,7 @@
    "merged_tracks": 155,
    "phantom_tracks": 11,
    "id_switches": 1295,
-   "tracker_ms": 0.395248504943016
+   "tracker_ms": 0.3962422905347517
   },
   {
    "tracker": "ours",
@@ -1087,25 +1087,25 @@
    "minutes": 60.0,
    "fps": 15,
    "true_entries": 93,
-   "entries": 82,
+   "entries": 85,
    "true_exits": 92,
-   "exits": 88,
-   "visits": 1080,
+   "exits": 90,
+   "visits": 209,
    "true_visitors": 95,
    "true_served": 79,
-   "served": 475,
+   "served": 93,
    "true_wait_s": 33.746803259547754,
-   "wait_s": 0.1,
-   "occ_mae": 1.170462962962963,
+   "wait_s": 4.0,
+   "occ_mae": 0.9058888888888889,
    "occ_mean": 2.9960555555555555,
-   "queue_mae": 0.6402037037037037,
-   "ids_per_person": 14.157894736842104,
-   "single_id_pct": 5.2631578947368425,
-   "coverage_pct": 62.160612727620524,
-   "merged_tracks": 158,
-   "phantom_tracks": 15,
-   "id_switches": 2148,
-   "tracker_ms": 0.03621905654479094
+   "queue_mae": 0.5672777777777778,
+   "ids_per_person": 4.442105263157894,
+   "single_id_pct": 11.578947368421053,
+   "coverage_pct": 64.79341402320374,
+   "merged_tracks": 132,
+   "phantom_tracks": 2,
+   "id_switches": 1092,
+   "tracker_ms": 0.08312942921421146
   },
   {
    "tracker": "sony_bytetrack",
@@ -1117,13 +1117,13 @@
    "entries": 85,
    "true_exits": 92,
    "exits": 91,
-   "visits": 531,
+   "visits": 530,
    "true_visitors": 95,
    "true_served": 79,
    "served": 229,
    "true_wait_s": 33.746803259547754,
    "wait_s": 0.3,
-   "occ_mae": 1.102462962962963,
+   "occ_mae": 1.035425925925926,
    "occ_mean": 2.9960555555555555,
    "queue_mae": 0.5757222222222222,
    "ids_per_person": 6.568421052631579,
@@ -1132,7 +1132,7 @@
    "merged_tracks": 121,
    "phantom_tracks": 4,
    "id_switches": 1105,
-   "tracker_ms": 0.43142690250102467
+   "tracker_ms": 0.40995912359384995
   },
   {
    "tracker": "rf_bytetrack",
@@ -1150,7 +1150,7 @@
    "served": 397,
    "true_wait_s": 33.746803259547754,
    "wait_s": 0.5,
-   "occ_mae": 1.0602592592592592,
+   "occ_mae": 1.043574074074074,
    "occ_mean": 2.9960555555555555,
    "queue_mae": 0.6394444444444445,
    "ids_per_person": 12.74736842105263,
@@ -1159,7 +1159,7 @@
    "merged_tracks": 253,
    "phantom_tracks": 16,
    "id_switches": 2103,
-   "tracker_ms": 0.2524194935179333
+   "tracker_ms": 0.23825102768239081
   },
   {
    "tracker": "rf_ocsort",
@@ -1177,7 +1177,7 @@
    "served": 219,
    "true_wait_s": 33.746803259547754,
    "wait_s": 0.1,
-   "occ_mae": 1.051611111111111,
+   "occ_mae": 1.0960925925925926,
    "occ_mean": 2.9960555555555555,
    "queue_mae": 0.6087037037037037,
    "ids_per_person": 6.042105263157895,
@@ -1186,7 +1186,7 @@
    "merged_tracks": 98,
    "phantom_tracks": 1,
    "id_switches": 973,
-   "tracker_ms": 0.3601853328841066
+   "tracker_ms": 0.3284313865113762
   },
   {
    "tracker": "rf_botsort",
@@ -1198,13 +1198,13 @@
    "entries": 78,
    "true_exits": 92,
    "exits": 86,
-   "visits": 556,
+   "visits": 555,
    "true_visitors": 95,
    "true_served": 79,
    "served": 230,
    "true_wait_s": 33.746803259547754,
    "wait_s": 0.2,
-   "occ_mae": 1.1032962962962962,
+   "occ_mae": 0.9542037037037037,
    "occ_mean": 2.9960555555555555,
    "queue_mae": 0.5938333333333333,
    "ids_per_person": 6.431578947368421,
@@ -1213,7 +1213,7 @@
    "merged_tracks": 111,
    "phantom_tracks": 6,
    "id_switches": 995,
-   "tracker_ms": 0.3115567418572027
+   "tracker_ms": 0.2913112200557306
   }
  ],
  "summary": [
@@ -1228,19 +1228,19 @@
    "true_exits": 267,
    "exits": 264,
    "exit_err_pct": 1.1235955056179776,
-   "visits_per_visitor": 0.981549815498155,
-   "served_err_pct": 3.7344398340248963,
+   "visits_per_visitor": 0.977859778597786,
+   "served_err_pct": 2.904564315352697,
    "true_wait_s": 35.52854547615948,
-   "wait_s": 30.03333333333333,
-   "occ_mae": 0.3812530864197531,
-   "queue_mae": 0.22812962962962963,
-   "ids_per_person": 1.202197173895287,
-   "single_id_pct": 80.4735358980642,
-   "coverage_pct": 96.84051230509571,
-   "merged_tracks": 63,
-   "id_switches_per_100": 62.361623616236166,
+   "wait_s": 29.866666666666667,
+   "occ_mae": 0.42742592592592593,
+   "queue_mae": 0.23283950617283952,
+   "ids_per_person": 1.0567467124070897,
+   "single_id_pct": 95.46169239565467,
+   "coverage_pct": 96.84358220768387,
+   "merged_tracks": 27,
+   "id_switches_per_100": 30.25830258302583,
    "phantom_tracks": 0,
-   "tracker_ms": 0.05056605351920654
+   "tracker_ms": 0.08015718009182034
   },
   {
    "tracker": "rf_botsort",
@@ -1265,7 +1265,7 @@
    "merged_tracks": 37,
    "id_switches_per_100": 24.723247232472325,
    "phantom_tracks": 0,
-   "tracker_ms": 0.45383571003230266
+   "tracker_ms": 0.41947693576645334
   },
   {
    "tracker": "rf_bytetrack",
@@ -1290,7 +1290,7 @@
    "merged_tracks": 28,
    "id_switches_per_100": 28.04428044280443,
    "phantom_tracks": 0,
-   "tracker_ms": 0.28774094294266556
+   "tracker_ms": 0.26407707486744325
   },
   {
    "tracker": "rf_ocsort",
@@ -1315,7 +1315,7 @@
    "merged_tracks": 42,
    "id_switches_per_100": 47.601476014760145,
    "phantom_tracks": 0,
-   "tracker_ms": 0.42903626548740037
+   "tracker_ms": 0.3985839724579516
   },
   {
    "tracker": "sony_bytetrack",
@@ -1340,32 +1340,32 @@
    "merged_tracks": 55,
    "id_switches_per_100": 78.22878228782288,
    "phantom_tracks": 0,
-   "tracker_ms": 0.5066836609833523
+   "tracker_ms": 0.4641846960441376
   },
   {
    "tracker": "ours",
    "noise": "hard",
    "runs": 3,
    "true_entries": 338,
-   "entries": 312,
-   "entry_err_pct": 7.6923076923076925,
-   "worst_run_entry_err_pct": 11.827956989247312,
+   "entries": 320,
+   "entry_err_pct": 5.325443786982248,
+   "worst_run_entry_err_pct": 8.602150537634408,
    "true_exits": 322,
-   "exits": 297,
-   "exit_err_pct": 7.763975155279503,
-   "visits_per_visitor": 12.47787610619469,
-   "served_err_pct": 552.1276595744681,
+   "exits": 311,
+   "exit_err_pct": 3.4161490683229814,
+   "visits_per_visitor": 2.3569321533923304,
+   "served_err_pct": 24.822695035460992,
    "true_wait_s": 79.45617250066715,
-   "wait_s": 0.16666666666666666,
-   "occ_mae": 1.7846913580246915,
-   "queue_mae": 2.1194197530864196,
-   "ids_per_person": 19.87371841368126,
-   "single_id_pct": 2.314610054548135,
-   "coverage_pct": 53.55992531877569,
-   "merged_tracks": 748,
-   "id_switches_per_100": 2746.312684365782,
-   "phantom_tracks": 56,
-   "tracker_ms": 0.044185334519428535
+   "wait_s": 8.366666666666667,
+   "occ_mae": 1.5112962962962964,
+   "queue_mae": 1.9361913580246914,
+   "ids_per_person": 6.931906236178682,
+   "single_id_pct": 6.887100103199175,
+   "coverage_pct": 57.97728912912535,
+   "merged_tracks": 544,
+   "id_switches_per_100": 1935.6932153392331,
+   "phantom_tracks": 8,
+   "tracker_ms": 0.10049647436927096
   },
   {
    "tracker": "rf_botsort",
@@ -1378,11 +1378,11 @@
    "true_exits": 322,
    "exits": 299,
    "exit_err_pct": 7.142857142857143,
-   "visits_per_visitor": 5.926253687315635,
+   "visits_per_visitor": 5.9174041297935105,
    "served_err_pct": 199.645390070922,
    "true_wait_s": 79.45617250066715,
    "wait_s": 0.16666666666666666,
-   "occ_mae": 1.8866543209876543,
+   "occ_mae": 1.8631913580246913,
    "queue_mae": 2.041543209876543,
    "ids_per_person": 7.250481497862303,
    "single_id_pct": 4.460799056464691,
@@ -1390,7 +1390,7 @@
    "merged_tracks": 407,
    "id_switches_per_100": 1042.7728613569323,
    "phantom_tracks": 25,
-   "tracker_ms": 0.3796540632025471
+   "tracker_ms": 0.37750689220976913
   },
   {
    "tracker": "rf_bytetrack",
@@ -1407,7 +1407,7 @@
    "served_err_pct": 462.7659574468085,
    "true_wait_s": 79.45617250066715,
    "wait_s": 0.9333333333333333,
-   "occ_mae": 1.8781728395061728,
+   "occ_mae": 1.9050123456790122,
    "queue_mae": 2.1242283950617282,
    "ids_per_person": 19.385907120743035,
    "single_id_pct": 3.5765885301489018,
@@ -1415,7 +1415,7 @@
    "merged_tracks": 1201,
    "id_switches_per_100": 3077.2861356932153,
    "phantom_tracks": 58,
-   "tracker_ms": 0.28477050485391237
+   "tracker_ms": 0.29142871684104454
   },
   {
    "tracker": "rf_ocsort",
@@ -1428,11 +1428,11 @@
    "true_exits": 322,
    "exits": 293,
    "exit_err_pct": 9.006211180124224,
-   "visits_per_visitor": 5.772861356932153,
+   "visits_per_visitor": 5.769911504424779,
    "served_err_pct": 186.87943262411346,
    "true_wait_s": 79.45617250066715,
    "wait_s": 0.2,
-   "occ_mae": 1.2951666666666666,
+   "occ_mae": 1.3185987654320988,
    "queue_mae": 2.068216049382716,
    "ids_per_person": 6.811390830016217,
    "single_id_pct": 4.390033908300162,
@@ -1440,7 +1440,7 @@
    "merged_tracks": 378,
    "id_switches_per_100": 1010.0294985250738,
    "phantom_tracks": 11,
-   "tracker_ms": 0.411629789096036
+   "tracker_ms": 0.40374258556618803
   },
   {
    "tracker": "sony_bytetrack",
@@ -1453,11 +1453,11 @@
    "true_exits": 322,
    "exits": 306,
    "exit_err_pct": 4.968944099378882,
-   "visits_per_visitor": 5.846607669616519,
+   "visits_per_visitor": 5.837758112094395,
    "served_err_pct": 195.03546099290782,
    "true_wait_s": 79.45617250066715,
    "wait_s": 0.5333333333333333,
-   "occ_mae": 1.8647654320987654,
+   "occ_mae": 1.8656851851851852,
    "queue_mae": 2.001530864197531,
    "ids_per_person": 8.200633348076073,
    "single_id_pct": 3.829809818664308,
@@ -1465,32 +1465,32 @@
    "merged_tracks": 502,
    "id_switches_per_100": 1237.1681415929204,
    "phantom_tracks": 18,
-   "tracker_ms": 0.48943174339005907
+   "tracker_ms": 0.4876769415845227
   },
   {
    "tracker": "ours",
    "noise": "realistic",
    "runs": 3,
    "true_entries": 275,
-   "entries": 268,
-   "entry_err_pct": 2.5454545454545454,
-   "worst_run_entry_err_pct": 4.3478260869565215,
+   "entries": 269,
+   "entry_err_pct": 2.1818181818181817,
+   "worst_run_entry_err_pct": 3.260869565217391,
    "true_exits": 267,
-   "exits": 264,
-   "exit_err_pct": 1.1235955056179776,
-   "visits_per_visitor": 5.095940959409594,
-   "served_err_pct": 212.0331950207469,
+   "exits": 265,
+   "exit_err_pct": 0.7490636704119851,
+   "visits_per_visitor": 1.2361623616236161,
+   "served_err_pct": 0.8298755186721992,
    "true_wait_s": 35.52854547615948,
-   "wait_s": 1.4333333333333333,
-   "occ_mae": 1.1864135802469136,
-   "queue_mae": 0.543283950617284,
-   "ids_per_person": 6.8534162378502,
-   "single_id_pct": 4.8088703749081105,
-   "coverage_pct": 82.04139251394083,
-   "merged_tracks": 508,
-   "id_switches_per_100": 1328.7822878228783,
-   "phantom_tracks": 34,
-   "tracker_ms": 0.04608721423097944
+   "wait_s": 21.1,
+   "occ_mae": 0.8156913580246914,
+   "queue_mae": 0.4346851851851852,
+   "ids_per_person": 2.6386200277709713,
+   "single_id_pct": 35.44168096054889,
+   "coverage_pct": 84.32822272093313,
+   "merged_tracks": 194,
+   "id_switches_per_100": 507.380073800738,
+   "phantom_tracks": 7,
+   "tracker_ms": 0.08690176831765307
   },
   {
    "tracker": "rf_botsort",
@@ -1503,11 +1503,11 @@
    "true_exits": 267,
    "exits": 269,
    "exit_err_pct": 0.7490636704119851,
-   "visits_per_visitor": 2.7416974169741697,
-   "served_err_pct": 35.684647302904565,
+   "visits_per_visitor": 2.7232472324723247,
+   "served_err_pct": 34.024896265560166,
    "true_wait_s": 35.52854547615948,
    "wait_s": 1.3666666666666667,
-   "occ_mae": 0.8845432098765432,
+   "occ_mae": 0.8756234567901234,
    "queue_mae": 0.6199012345679012,
    "ids_per_person": 3.134617740749816,
    "single_id_pct": 19.425385934819897,
@@ -1515,7 +1515,7 @@
    "merged_tracks": 268,
    "id_switches_per_100": 575.6457564575646,
    "phantom_tracks": 9,
-   "tracker_ms": 0.406169645342743
+   "tracker_ms": 0.3853450511735979
   },
   {
    "tracker": "rf_bytetrack",
@@ -1528,11 +1528,11 @@
    "true_exits": 267,
    "exits": 271,
    "exit_err_pct": 1.4981273408239701,
-   "visits_per_visitor": 2.6863468634686347,
+   "visits_per_visitor": 2.678966789667897,
    "served_err_pct": 99.5850622406639,
    "true_wait_s": 35.52854547615948,
    "wait_s": 4.566666666666666,
-   "occ_mae": 1.0549753086419753,
+   "occ_mae": 0.9752530864197531,
    "queue_mae": 0.6178148148148148,
    "ids_per_person": 5.582261292166953,
    "single_id_pct": 11.055296904353508,
@@ -1540,7 +1540,7 @@
    "merged_tracks": 477,
    "id_switches_per_100": 1301.8450184501844,
    "phantom_tracks": 24,
-   "tracker_ms": 0.2975505144259156
+   "tracker_ms": 0.27840483402165034
   },
   {
    "tracker": "rf_ocsort",
@@ -1553,19 +1553,19 @@
    "true_exits": 267,
    "exits": 266,
    "exit_err_pct": 0.37453183520599254,
-   "visits_per_visitor": 2.6752767527675276,
-   "served_err_pct": 27.38589211618257,
+   "visits_per_visitor": 2.5977859778597785,
+   "served_err_pct": 15.767634854771785,
    "true_wait_s": 35.52854547615948,
-   "wait_s": 1.9000000000000001,
-   "occ_mae": 0.7185246913580247,
-   "queue_mae": 0.6121975308641976,
+   "wait_s": 2.1,
+   "occ_mae": 0.6214074074074074,
+   "queue_mae": 0.610641975308642,
    "ids_per_person": 3.0521012006861064,
    "single_id_pct": 18.96900269541779,
    "coverage_pct": 76.31316717543051,
    "merged_tracks": 253,
    "id_switches_per_100": 568.2656826568266,
    "phantom_tracks": 8,
-   "tracker_ms": 0.4198130001292426
+   "tracker_ms": 0.3943866103805636
   },
   {
    "tracker": "sony_bytetrack",
@@ -1578,11 +1578,11 @@
    "true_exits": 267,
    "exits": 268,
    "exit_err_pct": 0.37453183520599254,
-   "visits_per_visitor": 2.6863468634686347,
+   "visits_per_visitor": 2.6826568265682655,
    "served_err_pct": 45.643153526970956,
    "true_wait_s": 35.52854547615948,
    "wait_s": 4.533333333333333,
-   "occ_mae": 0.7614567901234568,
+   "occ_mae": 0.6545987654320987,
    "queue_mae": 0.5461358024691358,
    "ids_per_person": 3.2530017152658663,
    "single_id_pct": 19.672465898880994,
@@ -1590,7 +1590,7 @@
    "merged_tracks": 294,
    "id_switches_per_100": 587.8228782287823,
    "phantom_tracks": 11,
-   "tracker_ms": 0.5016497537651082
+   "tracker_ms": 0.4807968730872991
   }
  ]
 }

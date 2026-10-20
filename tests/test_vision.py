@@ -43,16 +43,71 @@ def test_tracker_keeps_ids_for_two_crossing_people():
 
 
 def test_tracker_low_score_recovery_and_expiry():
-    tr = Tracker(min_hits=2, max_lost_seconds=1.0)
+    tr = Tracker(min_hits=2, max_lost_seconds=1.0, max_lost_static_seconds=3.0)
     for i in range(5):
         tr.update([Detection((0.4, 0.4, 0.5, 0.8), 0.9)], i * 0.1)
     tid = tr.tracks[0].id
     # occluded: low score detection should still extend the same track
     active, _ = tr.update([Detection((0.4, 0.4, 0.5, 0.8), 0.35)], 0.5)
     assert active and active[0].id == tid
-    # gone for longer than max_lost -> ended
+    # a standing person is remembered for max_lost_static, then ended
     _, ended = tr.update([], 2.0)
+    assert ended == [] and tr.tracks[0].id == tid
+    _, ended = tr.update([], 4.0)
     assert [t.id for t in ended] == [tid]
+
+
+def test_walker_is_forgotten_sooner_than_someone_standing():
+    tr = Tracker(min_hits=2, max_lost_seconds=1.0, max_lost_static_seconds=3.0)
+    for i in range(10):  # walking 0.3 box heights per frame
+        x = 0.1 + 0.03 * i
+        tr.update([Detection((x, 0.4, x + 0.1, 0.8), 0.9)], i * 0.1)
+    _, ended = tr.update([], 2.2)
+    assert len(ended) == 1
+
+
+def test_kalman_carries_a_walker_through_a_gap():
+    tr = Tracker(min_hits=2)
+    for i in range(10):  # 0.15 / s to the right
+        x = 0.1 + 0.015 * i
+        active, _ = tr.update([Detection((x, 0.3, x + 0.08, 0.7), 0.9)], i * 0.1)
+    tid = active[0].id
+    for i in range(10, 18):  # hidden for 0.8 s
+        tr.update([], i * 0.1)
+    x = 0.1 + 0.015 * 18
+    active, _ = tr.update([Detection((x, 0.3, x + 0.08, 0.7), 0.9)], 1.8)
+    assert [t.id for t in active] == [tid]
+
+
+def test_standing_person_hidden_for_seconds_keeps_identity():
+    # waiting in the queue, hidden 4 s behind the person in front, seen again at the same spot
+    tr = Tracker(min_hits=2)
+    box = (0.5, 0.3, 0.58, 0.6)
+    for i in range(20):
+        active, _ = tr.update([Detection(box, 0.8)], i * 0.1)
+    tid = active[0].id
+    for i in range(20, 60):
+        _, ended = tr.update([], i * 0.1)
+        assert ended == []
+    active, _ = tr.update([Detection((0.505, 0.30, 0.585, 0.6), 0.45)], 6.0)  # low score, partly hidden
+    assert [t.id for t in active] == [tid]
+
+
+def test_hidden_legs_do_not_move_the_foot_point():
+    tr = Tracker(min_hits=2)
+    for i in range(10):
+        active, _ = tr.update([Detection((0.5, 0.3, 0.6, 0.7), 0.9)], i * 0.1)
+    for i in range(10, 25):  # only the upper half is visible, low score
+        active, _ = tr.update([Detection((0.5, 0.3, 0.6, 0.5), 0.4)], i * 0.1)
+    assert active and abs(active[0].foot[1] - 0.7) < 0.03
+
+
+def test_assignment_is_optimal_not_greedy():
+    from pharmacam.vision.tracker import _hungarian
+
+    # greedy would take the single best pair (0,0) and leave row 1 unmatched
+    cost = [[0.40, 0.50], [0.45, 9.0]]
+    assert sorted(_hungarian(cost)) == [(0, 1), (1, 0)]
 
 
 def test_tracker_ignores_single_spurious_box():
@@ -87,3 +142,19 @@ def test_staff_classifier_uses_coat_and_zone():
     assert not clf.is_staff(other)
     other.meta.update(seen_s=20.0, staff_zone_s=15.0)  # mostly behind the counter
     assert clf.is_staff(other)
+
+
+def test_person_leaving_through_the_bottom_edge_does_not_run_away():
+    # walks down out of the picture: the box is cut by the image border, not by an occluder
+    tr = Tracker(min_hits=2)
+    ended_at = None
+    for i in range(40):
+        t = i * 0.1
+        top = 0.5 + 0.03 * i
+        dets = [Detection((0.4, top, 0.5, min(1.0, top + 0.4)), 0.8)] if top < 0.97 else []
+        active, ended = tr.update(dets, t)
+        for trk in active:
+            assert trk.foot[1] <= 1.02
+        if ended and ended_at is None:
+            ended_at = t
+    assert ended_at is not None and ended_at <= 2.5

@@ -9,6 +9,11 @@ and keeps live state (occupancy, queue length, staff on duty) for the API.
 
 When a track ends, an anonymous *visit* record is written. Minute metrics,
 hourly zone statistics and hourly heatmaps are flushed on time boundaries.
+
+Static objects: a "person" that has not moved at all for minutes, never came through the
+door and is not behind the counter is a poster or a mannequin. It is dropped from every
+metric and its place is remembered, so the next detection there is ignored at once.
+Installers can also draw "ignore" zones (mirrors, posters, a TV) where nothing is counted.
 """
 from __future__ import annotations
 
@@ -25,7 +30,7 @@ import numpy as np
 from .. import timeutil
 from ..camera.base import Frame
 from ..config import Config, Zone
-from ..vision.geometry import point_in_polygon, projection_t, signed_side
+from ..vision.geometry import iou, point_in_polygon, projection_t, signed_side
 from ..vision.staff import StaffClassifier
 from ..vision.tracker import Track, Tracker
 
@@ -34,6 +39,9 @@ log = logging.getLogger(__name__)
 ZONE_EXIT_GRACE = 0.8  # seconds a foot point may leave a zone without ending the stay
 ENTRY_DECISION_DELAY = 4.0  # seconds to wait for staff classification before counting a crossing
 DOOR_MARGIN = 0.07  # normalized distance inside the door line treated as "at the door"
+PHANTOM_AFTER_S = 120.0  # never moved, never came in, this old → a static object, not a person
+PHANTOM_MOVE_H = 0.12  # moving this many box heights proves it is a person
+STATIC_MEMORY_S = 7 * 86400.0  # forget a remembered static object not seen for a week
 
 
 @dataclass
@@ -103,6 +111,8 @@ class AnalyticsEngine:
         self._counter = 0
         self._empty_since: float | None = None
         self._pending_crossings: list[tuple[float, Track, str, str]] = []
+        self._seq = 0  # customers numbered today (#1, #2, ...), shown on the live view
+        self._static: list[dict] = self._load_static()  # remembered static false positives
         self._minute: MinuteAcc | None = None
         self._hour_key: str | None = None
         self._zone_hour: dict[str, ZoneHourStats] = defaultdict(ZoneHourStats)
@@ -130,6 +140,7 @@ class AnalyticsEngine:
         self.live.exits_today = s["exits"]
         self.live.staff_entries_today = s["staff_entries"]
         self._counter = max(0, s["entries"] - s["exits"])
+        self._seq = s["entries"]
 
     # --------------------------------------------------------------- per frame
     def process(self, frame: Frame) -> LiveState:
@@ -151,8 +162,16 @@ class AnalyticsEngine:
             self._fps_times.append(ts)
             self._roll_time(ts)
 
-            active, ended = self.tracker.update(frame.detections, ts)
+            dets = frame.detections
+            ignore = self.cfg.zones_of("ignore")
+            if ignore:  # mirrors, posters, a TV: the installer marked them, nothing there is counted
+                dets = [d for d in dets if not any(
+                    point_in_polygon(((d.box[0] + d.box[2]) / 2, (d.box[1] + d.box[3]) / 2), z.polygon)
+                    for z in ignore)]
+            active, ended = self.tracker.update(dets, ts)
             for t in active:
+                if "born" not in t.meta:
+                    self._on_new_track(t, ts)
                 self._update_track(t, frame, ts, dt)
             for t in ended:
                 self._finish_track(t, ts)
@@ -172,13 +191,17 @@ class AnalyticsEngine:
             m["staff_zone_s"] = m.get("staff_zone_s", 0.0) + dt
         is_staff = self.staff.is_staff(t)
         m["is_staff"] = is_staff
+        if self._static_check(t, foot, ts):
+            return  # a poster or a mannequin: no doors, zones, heatmap or live counts
+        if not is_staff and "n" not in m and m["seen_s"] >= 3.0:
+            self._number(t)  # their entry was not seen (already inside at start, hidden at the door)
 
         for door in self.cfg.zones_of("entrance"):
             self._door_step(t, door, ts)
 
         zones = m.setdefault("zones", {})
         for z in self.cfg.zones:
-            if z.type in ("entrance", "staff"):
+            if z.type in ("entrance", "staff", "ignore"):
                 continue
             inside = point_in_polygon(foot, z.polygon)
             st = zones.get(z.id)
@@ -195,6 +218,69 @@ class AnalyticsEngine:
             gx = min(self.grid_w - 1, max(0, int(foot[0] * self.grid_w)))
             gy = min(self.grid_h - 1, max(0, int(foot[1] * self.grid_h)))
             self._heat_hour[gy, gx] += dt
+
+    # ------------------------------------------------------- identity & statics
+    def _on_new_track(self, t: Track, ts: float) -> None:
+        m = t.meta
+        m["born"] = ts
+        m["uid"] = f"{int(t.first_ts)}-{t.id}"
+        for s in self._static:  # a remembered poster at the same spot
+            if iou(t.box, s["box"]) >= 0.5:
+                m["phantom"] = True
+                s["seen"] = ts
+                return
+
+    def _number(self, t: Track) -> None:
+        if "n" not in t.meta:
+            self._seq += 1
+            t.meta["n"] = self._seq
+
+    def _static_check(self, t: Track, foot: tuple[float, float], ts: float) -> bool:
+        """True while the track looks like a static object (it is then left out of everything)."""
+        m = t.meta
+        if not m.get("moved"):
+            fx, fy = foot
+            h = t.box[3] - t.box[1]
+            if "fx0" not in m:
+                m.update(fx0=fx, fx1=fx, fy0=fy, fy1=fy, h_sum=h, h_n=1)
+            else:
+                m["fx0"], m["fx1"] = min(m["fx0"], fx), max(m["fx1"], fx)
+                m["fy0"], m["fy1"] = min(m["fy0"], fy), max(m["fy1"], fy)
+                m["h_sum"] += h
+                m["h_n"] += 1
+            if max(m["fx1"] - m["fx0"], m["fy1"] - m["fy0"]) >= PHANTOM_MOVE_H * m["h_sum"] / m["h_n"]:
+                m["moved"] = True
+                m.pop("phantom", None)  # a very still person after all
+            elif (not m.get("phantom") and ts - t.first_ts >= PHANTOM_AFTER_S and not m.get("entered")
+                  and m.get("staff_zone_s", 0.0) < 0.3 * max(m.get("seen_s", 0.0), 1.0)):
+                m["phantom"] = True
+                self._remember_static(t.box, ts)
+        if m.get("phantom"):
+            for s in self._static:
+                if iou(t.box, s["box"]) >= 0.5:
+                    s["seen"] = ts
+            return True
+        return False
+
+    def _remember_static(self, box, ts: float) -> None:
+        log.info("Sabit nesne (poster/manken?) tespit edildi, sayımdan çıkarıldı: %s", [round(v, 3) for v in box])
+        self._static = [s for s in self._static if iou(s["box"], box) < 0.5]
+        self._static.append({"box": [round(v, 4) for v in box], "seen": ts})
+        self._save_static()
+
+    def _load_static(self) -> list[dict]:
+        if not self.store:
+            return []
+        try:
+            items = json.loads(self.store.get_meta("static_objects", "[]") or "[]")
+        except ValueError:
+            return []
+        now = time.time()
+        return [s for s in items if now - s.get("seen", 0) < STATIC_MEMORY_S]
+
+    def _save_static(self) -> None:
+        if self.store:
+            self.store.set_meta("static_objects", json.dumps(self._static))
 
     # ------------------------------------------------------------------- doors
     @staticmethod
@@ -274,6 +360,7 @@ class AnalyticsEngine:
                 acc.entries += 1
                 self.live.entries_today += 1
                 self._counter += 1
+                self._number(t)
             else:
                 acc.exits += 1
                 self.live.exits_today += 1
@@ -325,7 +412,7 @@ class AnalyticsEngine:
     # ------------------------------------------------------------- track end
     @staticmethod
     def _uid(t: Track) -> str:
-        return f"{int(t.first_ts)}-{t.id}"
+        return t.meta.get("uid") or f"{int(t.first_ts)}-{t.id}"
 
     def _finish_track(self, t: Track, ts: float) -> None:
         # flush crossings of this track before deciding anything else
@@ -333,6 +420,8 @@ class AnalyticsEngine:
         self._pending_crossings = [c for c in self._pending_crossings if c[1] is not t]
         for c in mine:
             self._emit_crossing(*c)
+        if t.meta.get("phantom"):
+            return
         if self.cfg.zones_of("entrance"):
             self._door_lost_exit(t)
         is_staff = self.staff.is_staff(t)
@@ -369,8 +458,9 @@ class AnalyticsEngine:
 
     # ------------------------------------------------------------- live state
     def _update_live(self, active: list[Track], ts: float, dt: float) -> None:
-        customers = [t for t in active if not t.meta.get("is_staff")]
-        staff = [t for t in active if t.meta.get("is_staff")]
+        people = [t for t in active if not t.meta.get("phantom")]
+        customers = [t for t in people if not t.meta.get("is_staff")]
+        staff = [t for t in people if t.meta.get("is_staff")]
         visible = len(customers)
         if visible == 0:
             self._empty_since = self._empty_since or ts
@@ -419,10 +509,12 @@ class AnalyticsEngine:
             "staff": bool(t.meta.get("is_staff")),
             "coat": round(t.meta.get("coat_score", 0.0), 2),
             "seen_s": round(t.meta.get("seen_s", 0.0), 1),
+            "n": t.meta.get("n"),  # n-th customer of the day
+            "in_s": round(ts - t.first_ts, 1),  # time in the shop so far
             "zone": _zone_now(t),
             "wait": (round(ts - t.meta["queue_start"], 1)
                      if "queue_start" in t.meta and not t.meta.get("served") else None),
-        } for t in active]
+        } for t in active if not t.meta.get("phantom")]
 
         acc = self._minute_acc(ts)
         acc.samples += 1
@@ -459,6 +551,7 @@ class AnalyticsEngine:
     def _roll_day(self, ts: float) -> None:
         self._day = timeutil.day_str(ts)
         self._counter = 0
+        self._seq = 0
         self.live.entries_today = 0
         self.live.exits_today = 0
         self.live.staff_entries_today = 0
@@ -501,6 +594,7 @@ class AnalyticsEngine:
             for t in self.tracker.flush():
                 self._finish_track(t, ts)
             self._resolve_crossings(ts, force=True)
+            self._save_static()
             self._flush_minute()
             self._minute = None
             self._flush_hour()

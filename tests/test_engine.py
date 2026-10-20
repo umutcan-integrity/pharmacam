@@ -151,3 +151,47 @@ def test_frames_without_new_detections_keep_counts(cfg):
     s = q.summary(store, DAY)
     assert s["entries"] == 1 and s["exits"] == 1 and s["served"] == 1
     assert eng.live.video_fps > eng.live.fps > 0
+
+
+def test_person_hidden_in_queue_keeps_identity_and_wait(cfg):
+    # waits in the queue, hidden 5 s behind the person in front, seen again where they stood,
+    # then served: still one visit with the full wait (the tracker remembers people standing)
+    scene = Scene(ts_at(DAY, 10))
+    scene.add([(0, 0.18, 0.99), (1.5, 0.18, 0.84), (3, 0.55, 0.65), (20, 0.55, 0.65)])
+    scene.add([(25, 0.55, 0.645), (27, 0.55, 0.43), (50, 0.55, 0.43), (53, 0.18, 0.84), (55, 0.18, 0.99)])
+    store, _ = run(cfg, scene, 56)
+    s = q.summary(store, DAY)
+    assert s["entries"] == 1 and s["exits"] == 1
+    assert s["visits"] == 1 and s["served"] == 1 and s["abandoned"] == 0
+    assert q.visits(store, DAY)[0]["queue_wait_s"] >= 24
+
+
+def test_poster_is_dropped_and_remembered(cfg):
+    poster = [(0, 0.89, 0.47), (200, 0.89, 0.47)]  # never moves, never came through the door
+    scene = Scene(ts_at(DAY, 10)).add(poster)
+    store = Store(":memory:")
+    eng = AnalyticsEngine(cfg, store)
+    for f in scene.frames(200):
+        live = eng.process(f)
+        if f.ts - scene.start == 60:
+            assert live.visible_customers == 1  # benefit of the doubt at first
+    assert live.visible_customers == 0 and live.tracks == []
+    eng.flush()
+    assert q.summary(store, DAY)["visits"] == 0
+    assert all(z["stops"] == 0 for z in q.zone_stats(store, DAY, DAY))
+    # after a restart the same spot is recognised at once
+    eng2 = AnalyticsEngine(cfg, store)
+    for f in Scene(ts_at(DAY, 11)).add(poster).frames(5):
+        live = eng2.process(f)
+    assert live.visible_customers == 0
+
+
+def test_ignore_zone_hides_detections(cfg):
+    cfg.set_zones(cfg.data["zones"] + [{"id": "ayna", "type": "ignore", "name": "Ayna",
+                                         "polygon": [[0.84, 0.25], [0.95, 0.25], [0.95, 0.5], [0.84, 0.5]]}])
+    scene = Scene(ts_at(DAY, 10)).add([(0, 0.89, 0.47), (20, 0.89, 0.47)])
+    store = Store(":memory:")
+    eng = AnalyticsEngine(cfg, store)
+    for f in scene.frames(20):
+        live = eng.process(f)
+    assert live.visible_customers == 0 and eng.tracker.tracks == []

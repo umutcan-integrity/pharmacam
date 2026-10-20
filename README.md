@@ -116,6 +116,30 @@ indirilir ve sha256 ile doğrulanır; indirilemezse cihaz geçici olarak `ssd` i
 > **Lisans:** YOLO11n (Ultralytics) AGPL-3.0 lisanslıdır. Kapalı kaynaklı ticari bir üründe kullanmak için
 > Ultralytics Enterprise lisansı gerekir; alternatif olarak `nanodet` (Apache-2.0) seçilebilir.
 
+## Takip ve doğrulama
+
+Takip: Kalman filtresi + üç aşamalı Hungarian eşleştirme (ByteTrack ve OC-SORT fikirleri, yalnızca Python).
+Ayakta bekleyenler daha uzun hatırlanır; insan resmi olan posterler ve mankenler kendiliğinden ayıklanır; ayna/poster gibi
+alanlar "Yok say" bölgesiyle işaretlenebilir. Simülatörde gerçek değerlere karşı ölçmek için:
+
+```bash
+python -m pharmacam.tools.bench_trackers --minutes 60 --seeds 3          # isteğe bağlı: --trackers ours,rf_ocsort,...
+```
+
+Gerçekçi gürültüde (kişilerin birbirinin arkasında kalması, kaçırmalar, poster) sonuçlar
+`docs/bench-trackers-2026-10-21.json` dosyasındadır: giriş hatası %2,2, çıkış %0,7, kişi başı ziyaret kaydı 1,24
+(eski takipçide 5,1), hizmet sayısı hatası %0,8 (eski %212).
+
+## Kayıtlı video ile deneme
+
+Kamera yerine bir mağaza videosu döngüde analiz edilebilir (bilgisayarda YOLO11n; `pip install ultralytics`):
+
+```bash
+python -m pharmacam -c config/pharmacam.video.yaml run    # → http://localhost:8081
+```
+
+Video `data/videos/` altında yerel kalır; bölgeleri panelin "Bölgeler" sekmesinden ayarlayın.
+
 ## Gizlilik
 
 Kişi tespiti kamera çipinde yapılır. Görüntü diske yazılmaz ve buluta gönderilmez. Kişiler geçici bir takip numarasıyla izlenir.

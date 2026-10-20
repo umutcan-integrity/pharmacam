@@ -13,7 +13,7 @@ from typing import Any
 
 import yaml
 
-ZONE_TYPES = ("shelf", "queue", "service", "staff", "entrance")
+ZONE_TYPES = ("shelf", "queue", "service", "staff", "entrance", "ignore")
 
 DEFAULTS: dict[str, Any] = {
     "device": {
@@ -43,7 +43,9 @@ DEFAULTS: dict[str, Any] = {
         "low_threshold": 0.3,
         "match_iou": 0.25,
         "min_hits": 3,
-        "max_lost_seconds": 2.0,
+        "max_lost_seconds": 2.0,  # walking people
+        "max_lost_static_seconds": 6.0,  # people standing still (queue, counter) are remembered longer
+        "recovery_score": 0.3,  # how close a reappearing person must be to where a lost track was seen
     },
     "staff": {
         "enabled": True,

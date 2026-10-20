@@ -14,6 +14,7 @@ ZONE_COLORS = {  # RGB — same palette as the panel and the film
     "service": (255, 150, 112),
     "staff": (190, 152, 255),
     "shelf": (255, 92, 138),
+    "ignore": (142, 142, 147),
 }
 
 

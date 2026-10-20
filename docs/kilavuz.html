@@ -353,6 +353,7 @@ Arka planda kameranın gördüğü eczane görüntüsü vardır. İçeride kimse
 <tr><td><span style="color:#ba55d3">■</span> <b>Tezgâh (hizmet)</b></td><td>Tezgâhın hemen önünde, müşterinin hizmet alırken durduğu dar şerit.</td><td>Hizmet süresi</td></tr>
 <tr><td><span style="color:#2ecc71">■</span> <b>Tezgâh arkası</b></td><td>Personelin çalıştığı alan.</td><td>Personel ayrımına yardım</td></tr>
 <tr><td><span style="color:#3498db">■</span> <b>Raf</b></td><td>Rafın <b>önündeki zemin</b> (rafın kendisi değil). Her rafa anlamlı bir ad verin.</td><td>Durma/geçme, süre</td></tr>
+<tr><td><span style="color:#8e8e93">■</span> <b>Yok say</b></td><td>Ayna, insan resmi olan poster, manken veya ekranın etrafını çevreleyin.</td><td>Oradaki "kişiler" hiç sayılmaz</td></tr>
 </table>
 <div class="tip"><b>Altın kural: ayak noktası</b>Bir kişi, kutusunun <b>alt orta noktası</b> (ayakları) bölgenin içindeyse o bölgede sayılır. Bölgeleri rafların veya tezgâhın gövdesine değil, <b>önündeki zemine</b> çizin.</div>
 <ol class="steps">
@@ -481,7 +482,8 @@ curl -u admin:SIFRE http://pharmacam-kadikoy.local:8080/api/summary
 <h2>İşleme hattı</h2>
 <ol>
   <li><b>Tespit (kamera çipi):</b> YOLO11n 640×640 modeli IMX500 üzerinde çalışır. Kamera saniyede 15 kare çeker ve <b>her kare</b> analiz edilir; model bir kareyi yaklaşık 33 ms'de işler. COCO doğruluğu (mAP) 0,374'tür; eski SSD MobileNetV2 modelinde bu değer 0,218 idi.</li>
-  <li><b>Takip:</b> İki aşamalı ByteTrack benzeri eşleştirme. Önce yüksek güvenli kutular eşleşir, ardından düşük güvenli kutular kısmen örtülen kişileri sürdürür. Sabit hız tahmini kullanılır, bir kişi 2 sn görünmezse takibi biter.</li>
+  <li><b>Takip:</b> Her kişi için Kalman filtresiyle konum tahmini ve üç aşamalı en iyi eşleştirme (ByteTrack ve OC-SORT yöntemleri): önce güvenli kutular, sonra kısmen örtülen kişilerin düşük güvenli kutuları, en son da kaybolan birinin <b>son görüldüğü yerden</b> yeniden yakalanması. Ayakta bekleyenler (sıra, tezgâh) 6 sn, yürüyenler 2 sn hatırlanır; bacakları öndeki birinin arkasında kalan kişinin ayak noktası zıplamaz.</li>
+  <li><b>Sabit nesneler:</b> 2 dakikadır hiç kıpırdamayan, kapıdan girmemiş ve tezgâh arkasında olmayan bir "kişi" (insan resmi olan poster, manken) sayımdan çıkarılır; yeri hatırlanır. İsterseniz bu alanları "Yok say" bölgesiyle de işaretleyebilirsiniz.</li>
   <li><b>Analitik:</b> kapı histerezisi (çift sayım yok), bölge giriş/çıkış toleransı (0,8 sn), önlük skoru (üstel ortalama), dakikalık ve saatlik toplama.</li>
 </ol>
 <div class="kpis">

@@ -152,6 +152,7 @@ class _Adapter:
             else:
                 t.box, t.last_ts, t.lost = box, ts, False
                 t.hits += 1
+            t.motion.append((ts, t.foot))
             active.append(t)
         ended = []
         for eid in list(self.by_ext):
