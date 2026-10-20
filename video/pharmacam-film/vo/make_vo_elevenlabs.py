@@ -10,12 +10,15 @@ The key is never printed.
 import argparse
 import json
 import os
+import ssl
 import subprocess
 import urllib.request
 from pathlib import Path
 
 HERE = Path(__file__).parent
 API = 'https://api.elevenlabs.io/v1'
+# python.org builds ship without CA certs on macOS: fall back to the system bundle
+CTX = ssl.create_default_context(cafile='/etc/ssl/cert.pem' if Path('/etc/ssl/cert.pem').exists() else None)
 
 
 def api_key() -> str:
@@ -34,7 +37,7 @@ def call(path, body=None):
     req = urllib.request.Request(API + path, data=json.dumps(body).encode() if body else None,
                                  headers={'xi-api-key': api_key(), 'Content-Type': 'application/json',
                                           'Accept': 'audio/mpeg' if body else 'application/json'})
-    with urllib.request.urlopen(req, timeout=60) as r:
+    with urllib.request.urlopen(req, timeout=60, context=CTX) as r:
         return r.read()
 
 
