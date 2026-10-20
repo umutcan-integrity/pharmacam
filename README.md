@@ -29,7 +29,7 @@ müşteri yoğunluğunu tahmin eder ve her akşam PDF rapor üretir. **Görünt�
 
 ```
 IMX500 AI Camera ──► Raspberry Pi 5 ─ pharmacam servisi ───────────────────────────► Web paneli :8080
- (SSD MobileNetV2,     ├─ ByteTrack-lite takip              ├─ REST API (/docs)
+ (YOLO11n 640,        ├─ ByteTrack-lite takip              ├─ REST API (/docs)
   kişi tespiti çipte)  ├─ Analitik: kapı / sıra / raf / ısı  ├─ Günlük PDF rapor + tahmin
                        ├─ Önlük (personel) sınıflandırıcı    └─ Bulut senkronizasyonu ──► PharmaCam Hub
                        └─ SQLite (400 gün geçmiş)                (kuyruklu, kayıpsız)        (çoklu eczane)
@@ -69,6 +69,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 |---|---|
 | `python -m pharmacam run` | Servis: kamera + analiz + API + zamanlanmış işler |
 | `python -m pharmacam check` | Kamera/model testi (fps, görülen kişi) |
+| `python -m pharmacam models --fetch` | Yapay zekâ modellerini listele, seçili olanı indir ve doğrula |
 | `python -m pharmacam report --day YYYY-MM-DD` | Günlük PDF rapor |
 | `python -m pharmacam backfill --days N` | Simülasyonla geçmiş veri (yalnızca simülatör yapılandırması) |
 | `uvicorn --factory pharmacam.hub.app:create_hub` | Çoklu eczane merkezi (Hub) |
@@ -98,6 +99,22 @@ docs/          kurulum kılavuzu (HTML kaynağı + PDF) · görseller
 scripts/       build_site.py (GitHub Pages) · build_docs.sh · screenshots.sh
 tests/         birim + uçtan uca testler
 ```
+
+## Yapay zekâ modeli
+
+Kişi tespiti kameranın çipinde çalışan bir modelle yapılır (`camera.model`). Pi 5 + AI Camera üzerinde ölçüldü:
+
+| Ön ayar | Model | COCO mAP (INT8) | Kamera / analiz | Lisans |
+|---|---|---|---|---|
+| `yolo11n` (varsayılan) | YOLO11n 640×640 | 0,374 | 15 / 15 kare/sn — her kare analiz edilir | AGPL-3.0 |
+| `nanodet` | NanoDet-Plus 416×416 | 0,320 | 30 / 15 kare/sn | Apache-2.0 |
+| `ssd` | SSD MobileNetV2 FPNLite 320×320 | 0,218 | 30 / 15 kare/sn | MIT |
+
+`yolo11n` dosyası Raspberry Pi'nin resmi [imx500-models](https://github.com/raspberrypi/imx500-models) deposundan
+indirilir ve sha256 ile doğrulanır; indirilemezse cihaz geçici olarak `ssd` ile çalışmaya devam eder.
+
+> **Lisans:** YOLO11n (Ultralytics) AGPL-3.0 lisanslıdır. Kapalı kaynaklı ticari bir üründe kullanmak için
+> Ultralytics Enterprise lisansı gerekir; alternatif olarak `nanodet` (Apache-2.0) seçilebilir.
 
 ## Gizlilik
 

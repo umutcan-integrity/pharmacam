@@ -336,6 +336,7 @@ ve mümkün olduğunca çok <b>rafı</b> görmelidir. AI Camera'nın görüş a�
 <tr><td><code>journalctl -u pharmacam -f</code></td><td>Canlı loglar</td></tr>
 <tr><td><code>sudo systemctl restart pharmacam</code></td><td>Servisi yeniden başlat (ayar dosyası değiştiyse)</td></tr>
 <tr><td><code>/opt/pharmacam/venv/bin/python -m pharmacam check</code></td><td>Kamera ve model testi: fps ve görülen kişi sayısı. Önce servisi durdurun.</td></tr>
+<tr><td><code>... -m pharmacam models --fetch</code></td><td>Modelleri listeler; seçili modeli indirir ve doğrular (kurulum bunu kendisi yapar)</td></tr>
 <tr><td><code>... -m pharmacam report --day 2026-10-19</code></td><td>Belirli bir gün için PDF rapor üret</td></tr>
 <tr><td><code>rpicam-hello --list-cameras</code></td><td>Kamera donanımı görünüyor mu?</td></tr>
 </table></div>
@@ -479,7 +480,7 @@ curl -u admin:SIFRE http://pharmacam-kadikoy.local:8080/api/summary
 <h1 class="chap"><span class="n">12</span>Doğruluk, performans ve kalibrasyon</h1>
 <h2>İşleme hattı</h2>
 <ol>
-  <li><b>Tespit (kamera çipi):</b> SSD MobileNetV2 FPN-Lite 320×320 (COCO) modeli IMX500 üzerinde çalışır ve her karede kişi kutularını verir.</li>
+  <li><b>Tespit (kamera çipi):</b> YOLO11n 640×640 modeli IMX500 üzerinde çalışır. Kamera saniyede 15 kare çeker ve <b>her kare</b> analiz edilir; model bir kareyi yaklaşık 33 ms'de işler. COCO doğruluğu (mAP) 0,374'tür; eski SSD MobileNetV2 modelinde bu değer 0,218 idi.</li>
   <li><b>Takip:</b> İki aşamalı ByteTrack benzeri eşleştirme. Önce yüksek güvenli kutular eşleşir, ardından düşük güvenli kutular kısmen örtülen kişileri sürdürür. Sabit hız tahmini kullanılır, bir kişi 2 sn görünmezse takibi biter.</li>
   <li><b>Analitik:</b> kapı histerezisi (çift sayım yok), bölge giriş/çıkış toleransı (0,8 sn), önlük skoru (üstel ortalama), dakikalık ve saatlik toplama.</li>
 </ol>
@@ -554,8 +555,8 @@ Bölgeler ve işaretli (●) ayarlar panelden değiştirilebilir, yeniden başla
 <tr><th style="width:36%">Anahtar</th><th style="width:16%">Varsayılan</th><th>Açıklama</th></tr>
 <tr><td><code>device.id</code></td><td>seri no.</td><td>Benzersiz cihaz kimliği (hub'da kullanılır)</td></tr>
 <tr><td><code>device.pharmacy_name</code> ●</td><td>—</td><td>Panel ve raporlarda görünen ad</td></tr>
-<tr><td><code>camera.model</code></td><td>SSD MobileNetV2</td><td><code>/usr/share/imx500-models</code> içindeki bir nesne tespit modeli (.rpk)</td></tr>
-<tr><td><code>camera.width / height / fps</code></td><td>1280 / 960 / 30</td><td>Görüntü boyutu ve kare hızı (yapay zekâ modeli bunun yarısında, ~15 kare/sn analiz eder)</td></tr>
+<tr><td><code>camera.model</code></td><td>yolo11n</td><td>Yapay zekâ modeli: <code>yolo11n</code> (en isabetli, AGPL-3.0), <code>nanodet</code> (Apache-2.0), <code>ssd</code> (MIT) ya da bir .rpk dosya yolu</td></tr>
+<tr><td><code>camera.width / height / fps</code></td><td>1280 / 960 / auto</td><td>Görüntü boyutu ve kare hızı. <code>auto</code>: modelin her kareyi analiz edebildiği en yüksek hız (yolo11n 15, diğerleri 30)</td></tr>
 <tr><td><code>camera.score_threshold</code></td><td>0.45</td><td>Kişi tespiti için en düşük güven</td></tr>
 <tr><td><code>camera.hflip / vflip</code></td><td>false</td><td>Ters montaj için görüntüyü çevir</td></tr>
 <tr><td><code>camera.watchdog_seconds</code></td><td>15</td><td>Kare gelmezse servisin kendini yeniden başlatma süresi</td></tr>

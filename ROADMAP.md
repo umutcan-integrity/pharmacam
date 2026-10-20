@@ -21,7 +21,7 @@ kutuları takip eder, analiz eder ve veriyi saklar. **Görüntü kaydedilmez, y�
 
 ## Faz 0 — Donanım doğrulama ✅
 - [x] Pi 5 + IMX500 tanınıyor, `imx500-all` modelleri kurulu
-- [x] Çip üzerinde nesne tespiti (SSD MobileNetV2 FPN-Lite, COCO) çalışıyor
+- [x] Çip üzerinde nesne tespiti çalışıyor: YOLO11n 640 (COCO mAP 0,374), 15 kare/sn'de her kare analiz
 - [x] SSH anahtar erişimi
 
 ## Faz 1 — Çekirdek analitik (MVP) ✅
@@ -60,8 +60,10 @@ kutuları takip eder, analiz eder ve veriyi saklar. **Görüntü kaydedilmez, y�
 - [ ] Hub için HTTPS alan adı + yedekleme
 
 ## Faz 5 — Ürünleşme
-- [ ] Eczaneye özel model: IMX500 için kendi eğitilmiş "önlüklü personel / müşteri" dedektörü
-      (Sony Model Compression Toolkit + `imx500-package` ile .rpk)
+- [ ] Eczaneye özel model: gerçek eczane görüntüleriyle (yukarıdan bakış) yeniden eğitilmiş, yalnızca
+      kişi tanıyan YOLO11n → `yolo export format=imx` (Linux x86) + `imx500-package` ile .rpk
+- [ ] Ticari lisans kararı: Ultralytics Enterprise (YOLO11n) ya da NanoDet (Apache-2.0)
+- [ ] Sahada doğruluk denetimi: yüzlerce kapı geçişi elle sayılıp sistemle karşılaştırılır
 - [ ] Çoklu kamera (büyük eczaneler) ve kameralar arası birleşik sayım
 - [ ] Kampanya / raf değişikliği öncesi-sonrası karşılaştırma (A/B)
 - [ ] Mobil bildirim: sıra 5 kişiyi geçince eczacıya uyarı
