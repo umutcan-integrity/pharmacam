@@ -31,7 +31,7 @@ const COPY = {
     fcTitle: 'Yarın için saatlik tahmin',
     tagline: 'Eczanenizin nabzı, gerçek zamanlı.',
     cta: 'Ücretsiz keşif görüşmesi',
-    phone: '+90 530 244 27 58',
+    phone: '+90 530 244 27 58   ·   +90 535 366 15 63',
     min: 'dk', sec: 'sn',
   },
   en: {
@@ -59,7 +59,7 @@ const COPY = {
     fcTitle: 'Hourly forecast for tomorrow',
     tagline: 'The pulse of your pharmacy, live.',
     cta: 'Book a free walkthrough',
-    phone: '+90 530 244 27 58',
+    phone: '+90 530 244 27 58   ·   +90 535 366 15 63',
     min: 'min', sec: 's',
   },
 };
