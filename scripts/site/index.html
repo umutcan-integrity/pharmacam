@@ -135,6 +135,9 @@ h1 { font-size: clamp(44px, 8.2vw, 104px); line-height: .98; letter-spacing: -.0
 .grad { background: linear-gradient(100deg, #8e8e93 0%, #f5f5f7 28%, #c7c7cc 50%, #f5f5f7 72%, #8e8e93 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
   background-size: 200% 100%; animation: shine 8s ease-in-out infinite; }
 @keyframes shine { 50% { background-position: 100% 0; } }
+/* background-clip:text only paints inside the box: give descenders (g, ç, ş, y) room without moving the layout */
+.grad { padding-bottom: .12em; }
+.words .w { padding-bottom: .16em; margin-bottom: -.16em; }
 .hero .lead { font-size: clamp(18px, 2.1vw, 22px); color: var(--ink-2); max-width: 40em; margin: 0 auto 38px; line-height: 1.55; }
 .hero .cta { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
 .trust { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 26px; margin-top: 30px; color: var(--muted); font-size: 14.5px; }
