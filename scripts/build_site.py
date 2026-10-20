@@ -143,7 +143,7 @@ def main() -> None:
     # landing page + assets
     shutil.copy(ROOT / "scripts" / "site" / "index.html", SITE / "index.html")
     (SITE / "assets").mkdir()
-    for f in (ROOT / "docs" / "assets").glob("*.png"):
+    for f in [*(ROOT / "docs" / "assets").glob("*.png"), *(ROOT / "scripts" / "site" / "assets").glob("*.png")]:
         shutil.copy(f, SITE / "assets" / f.name)
     shutil.copy(ROOT / "docs" / "PharmaCam-Kurulum-Kilavuzu.pdf", SITE / "PharmaCam-Kurulum-Kilavuzu.pdf")
     (SITE / ".nojekyll").write_text("")
