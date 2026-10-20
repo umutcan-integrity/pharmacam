@@ -8,6 +8,11 @@ export const SILVER = [161, 161, 166];
 export const DIM = [58, 58, 63];
 export const AMBER = [255, 159, 10];
 export const LIVE = [48, 209, 88];
+// warm, lively accents (film): rose, peach, gold, lilac
+export const ROSE = [255, 92, 138];
+export const PEACH = [255, 150, 112];
+export const GOLD = [255, 190, 64];
+export const LILAC = [190, 152, 255];
 
 export const PLAN = { x0: -560, x1: 560, y0: -320, y1: 320 };
 export const DOOR = { a: [-470, 320], b: [-290, 320] };
@@ -135,14 +140,19 @@ export function drawPlan(ctx, t, o = {}) {
   // zones
   for (const [id, z] of Object.entries(ZONES)) {
     const h = o.zone ? o.zone(id) : 0;
+    const zc = (o.zoneColor && o.zoneColor(id)) || INK;
     const base = 0.16 * fu;
     const [x0, y0, x1, y1] = z.r;
     ctx.setLineDash([6, 7]);
-    ctx.strokeStyle = rgba(INK, base + h * 0.7);
-    ctx.lineWidth = 1.6 + h * 1.4;
+    ctx.strokeStyle = h > 0 ? rgba(lerpC(INK, zc, Math.min(1, h * 1.5)), base + h * 0.75) : rgba(INK, base);
+    ctx.lineWidth = 1.6 + h * 1.8;
     rrect(ctx, x0, y0, x1 - x0, y1 - y0, 10); ctx.stroke();
     ctx.setLineDash([]);
-    if (h > 0) { ctx.fillStyle = rgba(INK, 0.07 * h); ctx.fill(); }
+    if (h > 0) {
+      const g = ctx.createLinearGradient(x0, y0, x1, y1);
+      g.addColorStop(0, rgba(zc, 0.22 * h)); g.addColorStop(1, rgba(zc, 0.06 * h));
+      ctx.fillStyle = g; ctx.fill();
+    }
   }
 
   // door line
@@ -164,7 +174,8 @@ export function drawAgent(ctx, kf, t, kind = 'customer', o = {}) {
   if (!p) return null;
   const a = (o.alpha ?? 1) * clamp((t - kf[0][0]) / 0.25) * clamp((kf[kf.length - 1][0] - t) / 0.25);
   if (a <= 0) return p;
-  const col = kind === 'staff' ? (o.color ?? INK) : AMBER;
+  const col = kind === 'staff' ? (o.color ?? INK) : (o.color ?? AMBER);
+  const col2 = o.color2 ?? col;
   // trail
   for (let k = 8; k >= 1; k--) {
     const q = pathPos(kf, t - k * 0.05);
@@ -173,11 +184,33 @@ export function drawAgent(ctx, kf, t, kind = 'customer', o = {}) {
     ctx.beginPath(); ctx.arc(q[0], q[1], 9 * (1 - k / 14), 0, TAU); ctx.fill();
   }
   // halo
-  const g = ctx.createRadialGradient(p[0], p[1], 0, p[0], p[1], 34);
-  g.addColorStop(0, rgba(col, 0.38 * a)); g.addColorStop(1, rgba(col, 0));
-  ctx.fillStyle = g; ctx.fillRect(p[0] - 34, p[1] - 34, 68, 68);
-  ctx.fillStyle = rgba(col, a);
+  const R = o.halo ?? 34;
+  const g = ctx.createRadialGradient(p[0], p[1], 0, p[0], p[1], R);
+  g.addColorStop(0, rgba(col, 0.42 * a)); g.addColorStop(1, rgba(col2, 0));
+  ctx.fillStyle = g; ctx.fillRect(p[0] - R, p[1] - R, 2 * R, 2 * R);
+  const core = ctx.createLinearGradient(p[0] - 10, p[1] - 10, p[0] + 10, p[1] + 10);
+  core.addColorStop(0, rgba(col, a)); core.addColorStop(1, rgba(col2, a));
+  ctx.fillStyle = core;
   ctx.beginPath(); ctx.arc(p[0], p[1], 10, 0, TAU); ctx.fill();
   ctx.strokeStyle = rgba(BG, 0.9 * a); ctx.lineWidth = 2.5; ctx.stroke();
   return p;
+}
+
+const lerpC = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+
+/** A burst of warm dots thrown into the store when someone crosses the door (event at t0). */
+export function doorBurst(ctx, x, y, t0, t, colors, n = 12) {
+  const u = t - t0;
+  if (u < 0 || u > 0.9) return;
+  const e = EASE.expo(clamp(u / 0.9));
+  for (let i = 0; i < n; i++) {
+    const ang = -Math.PI / 2 + (hash(i * 7.3 + t0 * 13) - 0.5) * 2.2;     // mostly upwards, into the store
+    const dist = 40 + 110 * hash(i * 3.1 + t0) ;
+    const r = (3 + 4 * hash(i + t0 * 5)) * (1 - e * 0.6);
+    ctx.fillStyle = rgba(colors[i % colors.length], (1 - e) * 0.95);
+    ctx.beginPath(); ctx.arc(x + Math.cos(ang) * dist * e, y + Math.sin(ang) * dist * e, r, 0, TAU); ctx.fill();
+  }
+  ctx.strokeStyle = rgba(colors[0], 0.6 * (1 - e));
+  ctx.lineWidth = 3 * (1 - e) + 0.5;
+  ctx.beginPath(); ctx.arc(x, y, 14 + 70 * e, Math.PI, TAU); ctx.stroke();
 }

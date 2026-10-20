@@ -45,11 +45,13 @@ def dur(p):
     return float(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', str(p)]))
 
 
-def tts(text, voice, speed, out):
+def tts(text, voice, speed, out, prev='', nxt=''):
     mp3 = out.with_suffix('.mp3')
     mp3.write_bytes(call(f'/text-to-speech/{voice}', {
         'text': text, 'model_id': 'eleven_multilingual_v2', 'language_code': 'tr',
-        'voice_settings': {'stability': 0.55, 'similarity_boost': 0.8, 'style': 0.15, 'speed': speed},
+        # context makes each line flow like part of one read, not ten separate takes
+        'previous_text': prev, 'next_text': nxt,
+        'voice_settings': {'stability': 0.38, 'similarity_boost': 0.8, 'style': 0.4, 'use_speaker_boost': True, 'speed': speed},
     }))
     subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', str(mp3), '-af',
                     'silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse',
@@ -77,16 +79,18 @@ def main():
         raise SystemExit('--voice <voice_id> gerekli (önce --list)')
     plan = []
     lines = (HERE / 'lines.tsv').read_text(encoding='utf-8').strip().splitlines()
+    texts = [ln.split('\t')[2].replace('Farma Kam', 'Farmakem') for ln in lines]
     for i, line in enumerate(lines, 1):
         t0, t1, text = line.split('\t')
         t0, win = float(t0), float(t1) - float(t0)
         text = text.replace('Farma Kam', 'Farmakem')       # brand said the English way: FAR-ma-kem
         out = HERE / f'line{i:02d}.wav'
         speed = 1.0
-        d = tts(text, a.voice, speed, out)
+        ctx2 = dict(prev=' '.join(texts[max(0, i - 3):i - 1]), nxt=' '.join(texts[i:i + 2]))
+        d = tts(text, a.voice, speed, out, **ctx2)
         while d > win and speed < 1.2:                      # ElevenLabs allows 0.7–1.2
             speed = min(1.2, round(speed * d / win * 1.02, 2))
-            d = tts(text, a.voice, speed, out)
+            d = tts(text, a.voice, speed, out, **ctx2)
         plan.append({'i': i, 't': t0, 'file': out.name, 'dur': round(d, 2), 'win': round(win, 2), 'speed': speed, 'text': text})
         print(f"{i:2d}  t={t0:5.2f}  süre={d:4.2f}/{win:4.2f}  hız={speed}  {text}" + ('   ← SIĞMADI' if d > win + 0.05 else ''))
     (HERE / 'plan.json').write_text(json.dumps(plan, ensure_ascii=False, indent=1))

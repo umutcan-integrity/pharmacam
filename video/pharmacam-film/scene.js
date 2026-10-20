@@ -3,12 +3,13 @@
 // revealing a metric; a privacy turn (pixels → chip → numbers); the dashboard; the end card.
 // Layout adapts to the canvas: landscape = copy left / visual right, portrait/square = copy top.
 import { TAU, clamp, lerp, prog, rgba, E, EASE, spring, wobble, setFont, wrap, rrect, pill, vignette, chromatic, hash, radialBlob, shake } from '../../engine/core.js';
-import { BG, INK, SILVER, AMBER, LIVE, drawPlan, drawAgent, pathPos } from './plan.js';
+import { BG, INK, SILVER, AMBER, LIVE, ROSE, PEACH, GOLD, LILAC, drawPlan, drawAgent, pathPos, doorBurst } from './plan.js';
 
 const COPY = {
   tr: {
     l1: 'Bugün kaç kişi geldi?',
     l2: 'PharmaCam sayar.',
+    hl: { l1: 'kaç kişi', l2: 'sayar.', l3: 'Hangi raf', l4: 'ne kadar', l5a: 'personel.', l6: 'haritası.', l7a: 'kaydedilmez.', l8: 'Yarını' },
     countLabel: 'bugün giren müşteri',
     l3: 'Hangi raf ilgi görüyor?',
     shelf: 'Dermokozmetik',
@@ -37,6 +38,7 @@ const COPY = {
   en: {
     l1: 'How many came in today?',
     l2: 'PharmaCam counts.',
+    hl: { l1: 'How many', l2: 'counts.', l3: 'Which shelf', l4: 'How long', l5a: 'staff.', l6: 'heatmap.', l7a: 'stored.', l8: 'tomorrow,' },
     countLabel: 'customers today',
     l3: 'Which shelf gets attention?',
     shelf: 'Skincare',
@@ -98,17 +100,30 @@ function layoutFor(W, H) {
 
 /** Camera: which plan point sits on the anchor, and how far we are zoomed in. */
 function camera(t) {
-  let fx = 0, fy = 0, z = lerp(1.06, 1.0, EASE.css(prog(t, 0, 3.8)));
-  const shots = [[3.8, 4.45, -380, 10, 1.65], [5.8, 6.45, 22, -36, 1.55], [7.8, 8.45, 30, -248, 1.8], [9.8, 10.6, 0, 0, 1.0], [11.8, 12.6, 0, 0, 0.9]];
-  for (const [t0, t1, x, y, zz] of shots) {
-    const e = EASE.expo(prog(t, t0, t1));
-    fx = lerp(fx, x, e); fy = lerp(fy, y, e); z = lerp(z, zz, e);
+  let fx = 0, fy = 0, z = lerp(1.08, 1.0, EASE.css(prog(t, 0, 3.8))), rot = 0;
+  const shots = [[3.8, 4.45, -380, 10, 1.65, -0.035], [5.8, 6.45, 22, -36, 1.55, 0.03], [7.8, 8.45, 30, -248, 1.8, -0.025], [9.8, 10.6, 0, 0, 1.0, 0.0], [11.8, 12.6, 0, 0, 0.9, 0.0]];
+  for (const [t0, t1, x, y, zz, rr] of shots) {
+    const e = EASE.expo(prog(t, t0, t1)), b = E.outBack(prog(t, t0, t1), 1.4);
+    fx = lerp(fx, x, e); fy = lerp(fy, y, e); z = lerp(z, zz, b); rot = lerp(rot, rr, e);
   }
-  return { fx, fy, z };
+  return { fx, fy, z, rot };
 }
 
+/** A glossy diagonal light sweep across the frame (used on section changes). */
+function sweep(ctx, W, H, t, t0, dur = 0.55, a = 0.13) {
+  const u = prog(t, t0, t0 + dur);
+  if (u <= 0 || u >= 1) return;
+  const x = lerp(-W * 0.4, W * 1.4, E.inOutCubic(u));
+  const g = ctx.createLinearGradient(x - 260, 0, x + 260, H * 0.35);
+  g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, `rgba(255,235,225,${a})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+const CUSTOMER_COLORS = { c1: [ROSE, PEACH], c2: [GOLD, PEACH], c3: [PEACH, ROSE], c4: [GOLD, ROSE], c5: [ROSE, GOLD], c6: [PEACH, GOLD] };
+const ZONE_COLORS = { derma: ROSE, vitamin: ROSE, bebek: PEACH, queue: GOLD, service: PEACH, staff: LILAC };
+const DOOR_X = [-400, -350, -440, -320, -380, -330];
+
 /** A headline that rises out of a mask and leaves upwards. Returns block height. */
-function headline(ctx, text, x, y, size, maxW, t0, t1, t, { color = INK, weight = 800 } = {}) {
+function headline(ctx, text, x, y, size, maxW, t0, t1, t, { color = INK, weight = 800, hl = null } = {}) {
   setFont(ctx, weight, size, 'Inter', -size * 0.035);
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   const lines = wrap(ctx, text, maxW);
@@ -120,8 +135,18 @@ function headline(ctx, text, x, y, size, maxW, t0, t1, t, { color = INK, weight 
     const base = y + i * lh;
     ctx.save();
     ctx.beginPath(); ctx.rect(x - 20, base - size * 1.08, maxW + 400, size * 1.45); ctx.clip();
+    const yy = base + (1 - pin) * size * 1.15 - pout * size * 1.2;
     ctx.fillStyle = rgba(color, 1);
-    ctx.fillText(ln, x, base + (1 - pin) * size * 1.15 - pout * size * 1.2);
+    ctx.fillText(ln, x, yy);
+    const k = hl ? ln.indexOf(hl) : -1;
+    if (k >= 0) {   // keyword in a warm gradient, with an underline that swipes in
+      const x0 = x + ctx.measureText(ln.slice(0, k)).width, w = ctx.measureText(hl).width;
+      const g = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+      g.addColorStop(0, rgba(ROSE)); g.addColorStop(0.55, rgba(PEACH)); g.addColorStop(1, rgba(GOLD));
+      ctx.fillStyle = g; ctx.fillText(hl, x0, yy);
+      const u = EASE.expo(prog(t, t0 + 0.35, t0 + 0.95)) * (1 - pout);
+      if (u > 0) { rrect(ctx, x0, yy + size * 0.16, w * u, size * 0.075, size * 0.04); ctx.fill(); }
+    }
     ctx.restore();
   });
   return lines.length * lh;
@@ -193,8 +218,10 @@ export default {
     ctx.fillStyle = rgba(BG); ctx.fillRect(0, 0, W, H);
 
     // ambient light (slow, neutral)
-    radialBlob(ctx, W * (0.7 + 0.05 * Math.sin(t * 0.3)), H * 0.2, W * 0.5, [40, 40, 46], 0.55);
-    radialBlob(ctx, W * 0.15, H * (0.9 + 0.04 * Math.cos(t * 0.25)), W * 0.4, [46, 38, 30], 0.35);
+    // warm, moving light — rose, gold and lilac washes drifting behind everything
+    radialBlob(ctx, W * (0.78 + 0.08 * Math.sin(t * 0.35)), H * (0.18 + 0.06 * Math.cos(t * 0.3)), W * 0.55, ROSE, 0.30);
+    radialBlob(ctx, W * (0.12 + 0.06 * Math.cos(t * 0.28)), H * (0.92 + 0.05 * Math.sin(t * 0.4)), W * 0.5, GOLD, 0.24);
+    radialBlob(ctx, W * (0.45 + 0.1 * Math.sin(t * 0.22 + 1)), H * (0.55 + 0.08 * Math.sin(t * 0.33)), W * 0.4, LILAC, 0.14);
 
     const [sx, sy] = shake(t, [[12.95, 7]]);
     ctx.save(); ctx.translate(sx, sy);
@@ -203,16 +230,18 @@ export default {
     const cam = camera(t);
     const planAlpha = (1 - 0.75 * EASE.expo(prog(t, 11.9, 12.5))) * (1 - E.inCubic(prog(t, 13.4, 14.1)));
     const S = L.s * cam.z;
-    const toScreen = (x, y) => [L.ax + (x - cam.fx) * S, L.ay + (y - cam.fy) * S];
+    const cr = Math.cos(cam.rot), sr = Math.sin(cam.rot);
+    const toScreen = (x, y) => { const dx = (x - cam.fx) * S, dy = (y - cam.fy) * S; return [L.ax + dx * cr - dy * sr, L.ay + dx * sr + dy * cr]; };
     if (planAlpha > 0.001) {
       ctx.save();
-      ctx.translate(L.ax, L.ay); ctx.scale(S, S); ctx.translate(-cam.fx, -cam.fy);
+      ctx.translate(L.ax, L.ay); ctx.rotate(cam.rot); ctx.scale(S, S); ctx.translate(-cam.fx, -cam.fy);
       const doorGlow = CROSSINGS.reduce((a, tc) => a + (t >= tc ? Math.exp(-(t - tc) * 6) : 0), 0);
       drawPlan(ctx, t, {
         alpha: planAlpha,
         birth: prog(t, 0.05, 1.9),
         doorGlow,
         ripples: CROSSINGS.map(tc => [-380, 320, tc]).concat([[-425, 12, 3.6], [22, -112, 3.7], [22, -170, 7.7]]),
+        zoneColor: id => ZONE_COLORS[id],
         zone: id => {
           if (id === 'derma') return EASE.expo(prog(t, 4.0, 4.5)) * (1 - prog(t, 6.0, 6.4));
           if (id === 'queue') return EASE.expo(prog(t, 6.0, 6.5)) * (1 - prog(t, 8.0, 8.4));
@@ -237,11 +266,12 @@ export default {
       // people
       const staffGrey = EASE.expo(prog(t, 8.9, 9.4));
       for (const kf of Object.values(STAFF)) drawAgent(ctx, kf, t, 'staff', { alpha: planAlpha, color: [lerp(245, 110, staffGrey), lerp(245, 110, staffGrey), lerp(247, 116, staffGrey)] });
-      for (const kf of Object.values(AGENTS)) drawAgent(ctx, kf, t, 'customer', { alpha: planAlpha * (1 - 0.6 * prog(t, 10.2, 10.8)) });
+      CROSSINGS.forEach((tc, i) => doorBurst(ctx, DOOR_X[i], 318, tc, t, [ROSE, GOLD, PEACH]));
+      for (const [k, kf] of Object.entries(AGENTS)) drawAgent(ctx, kf, t, 'customer', { alpha: planAlpha * (1 - 0.6 * prog(t, 10.2, 10.8)), color: CUSTOMER_COLORS[k][0], color2: CUSTOMER_COLORS[k][1], halo: 42 });
       // dwell ring around the shelf customer (bar 2)
       if (t > 3.6 && t < 6.3) {
         const p = pathPos(AGENTS.c1, t);
-        ctx.strokeStyle = rgba(AMBER, 0.9 * (1 - prog(t, 6.0, 6.3)));
+        ctx.strokeStyle = rgba(ROSE, 0.95 * (1 - prog(t, 6.0, 6.3)));
         ctx.lineWidth = 4; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.arc(p[0], p[1], 26, -Math.PI / 2, -Math.PI / 2 + TAU * prog(t, 3.65, 5.7)); ctx.stroke();
       }
@@ -252,7 +282,7 @@ export default {
         const out = 1 - E.inBack(prog(t, 5.85, 6.15), 2);
         const p = pathPos(AGENTS.c1, Math.min(t, 6.1)) ?? [-425, 12];
         const [x, y] = toScreen(p[0], p[1]);
-        chipLabel(ctx, x + 40, y - 120, c.shelf, spring(t - 4.2, 15, 7) * out, { size: 30, dot: AMBER });
+        chipLabel(ctx, x + 40, y - 120, c.shelf, spring(t - 4.2, 13, 5.5) * out, { size: 30, dot: ROSE });
         const secs = Math.round(24 * EASE.css(prog(t, 3.7, 5.6)));
         chipLabel(ctx, x + 40, y + 108, `${secs} ${c.dwell}`, spring(t - 4.45, 15, 7) * out, { size: 30 });
       }
@@ -260,7 +290,7 @@ export default {
         const p = pathPos(AGENTS.c3, Math.min(t, 7.3)) ?? Q[0];
         const [x, y] = toScreen(p[0], p[1]);
         const waitS = 58 + 6 * prog(t, 6.2, 7.2);
-        chipLabel(ctx, x + 210, y + 4, `${c.wait} ${fmtWait(waitS, c)}`, spring(t - 6.25, 15, 7) * (1 - E.inBack(prog(t, 7.25, 7.5), 2)), { size: 30, dot: AMBER });
+        chipLabel(ctx, x + 210, y + 4, `${c.wait} ${fmtWait(waitS, c)}`, spring(t - 6.25, 15, 7) * (1 - E.inBack(prog(t, 7.25, 7.5), 2)), { size: 30, dot: GOLD });
         const [x2, y2] = toScreen(...SERVICE);
         chipLabel(ctx, x2 + 160, y2 - 6, c.served, spring(t - 7.75, 15, 7) * (1 - E.inBack(prog(t, 7.95, 8.2), 2)), { size: 30, dot: LIVE });
       }
@@ -269,7 +299,7 @@ export default {
         const p = pathPos(kf, t);
         if (!p) continue;
         const [x, y] = toScreen(p[0], p[1]);
-        chipLabel(ctx, x, y + 80, c.staff, s, { size: 28, dot: [200, 200, 205] });
+        chipLabel(ctx, x, y + 80, c.staff, s, { size: 28, dot: LILAC });
       }
     }
 
@@ -367,16 +397,19 @@ export default {
         ctx.beginPath();
         hours.forEach((v, i) => { const [x, y] = pt(i, v + 0.06 + 0.06 * v); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
         for (let i = hours.length - 1; i >= 0; i--) { const [x, y] = pt(i, Math.max(0, hours[i] - 0.06 - 0.06 * hours[i])); ctx.lineTo(x, y); }
-        ctx.closePath(); ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill();
+        ctx.closePath();
+        const bg2 = ctx.createLinearGradient(gx, 0, gx + gw, 0); bg2.addColorStop(0, rgba(ROSE, 0.2)); bg2.addColorStop(1, rgba(GOLD, 0.2));
+        ctx.fillStyle = bg2; ctx.fill();
         ctx.beginPath();
         hours.forEach((v, i) => { const [x, y] = pt(i, v); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
-        ctx.strokeStyle = rgba(INK); ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.stroke();
+        const lg = ctx.createLinearGradient(gx, 0, gx + gw, 0); lg.addColorStop(0, rgba(ROSE)); lg.addColorStop(0.6, rgba(PEACH)); lg.addColorStop(1, rgba(GOLD));
+        ctx.strokeStyle = lg; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.stroke();
         ctx.restore();
         ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.moveTo(gx, gy + gh); ctx.lineTo(gx + gw, gy + gh); ctx.stroke();
         peak = pt(11, 1.0);
         const ps = spring(t - 15.25, 15, 7);
-        if (ps > 0) { ctx.fillStyle = rgba(INK); ctx.beginPath(); ctx.arc(peak[0], peak[1], 8 * clamp(ps), 0, TAU); ctx.fill(); }
+        if (ps > 0) { ctx.fillStyle = rgba(GOLD); ctx.shadowColor = rgba(GOLD, 0.8); ctx.shadowBlur = 20; ctx.beginPath(); ctx.arc(peak[0], peak[1], 9 * clamp(ps), 0, TAU); ctx.fill(); ctx.shadowBlur = 0; ctx.shadowColor = 'transparent'; }
         ctx.restore();
         chipLabel(ctx, peak[0], peak[1] - 56, c.tomorrow, spring(t - 15.3, 15, 7) * (1 - dashOut), { size: 32, fill: 'rgba(245,245,247,0.96)', ink: [10, 10, 11], weight: 700 });
       }
@@ -397,6 +430,11 @@ export default {
           ctx.save(); ctx.globalAlpha = 1 - dashOut;
           rrect(ctx, x - w / 2, y - h / 2, w, h, 18); ctx.fillStyle = 'rgba(255,255,255,0.07)'; ctx.fill();
           ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1.5; ctx.stroke();
+          const ac = [ROSE, GOLD, PEACH, LILAC][i];
+          ctx.save(); ctx.clip(); ctx.fillStyle = rgba(ac, 0.95); ctx.fillRect(x - w / 2, y - h / 2, w, 5);
+          const tg = ctx.createRadialGradient(x - w / 2, y - h / 2, 0, x - w / 2, y - h / 2, w * 0.7);
+          tg.addColorStop(0, rgba(ac, 0.22)); tg.addColorStop(1, rgba(ac, 0)); ctx.fillStyle = tg; ctx.fillRect(x - w / 2, y - h / 2, w, h);
+          ctx.restore();
           ctx.globalAlpha = (1 - dashOut) * clamp(k * 1.6 - 0.4);
           setFont(ctx, 500, 24, 'Inter', 0); ctx.fillStyle = rgba(SILVER); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
           ctx.fillText(tiles[i][0], x - w / 2 + 24, y - h / 2 + 40);
@@ -412,7 +450,7 @@ export default {
     if (t < 16.05) {
       if (L.land) {
         const g = ctx.createLinearGradient(0, 0, W * 0.5, 0);
-        g.addColorStop(0, rgba(BG, 0.94)); g.addColorStop(0.6, rgba(BG, 0.75)); g.addColorStop(1, rgba(BG, 0));
+        g.addColorStop(0, rgba(BG, 0.86)); g.addColorStop(0.6, rgba(BG, 0.6)); g.addColorStop(1, rgba(BG, 0));
         ctx.fillStyle = g; ctx.fillRect(0, 0, W * 0.5, H);
       } else {
         const g = ctx.createLinearGradient(0, 0, 0, H * 0.45);
@@ -429,40 +467,64 @@ export default {
         ctx.restore();
       }
       const hs = L.hs, x = L.tx, y = L.ty + hs;
-      headline(ctx, c.l1, x, y, hs, L.tW, 0.25, 1.75, t);
-      headline(ctx, c.l2, x, y, hs, L.tW, 2.15, 3.7, t);
+      headline(ctx, c.l1, x, y, hs, L.tW, 0.25, 1.75, t, { hl: c.hl.l1 });
+      headline(ctx, c.l2, x, y, hs, L.tW, 2.15, 3.7, t, { hl: c.hl.l2 });
       if (t > 2.2 && t < 4.2) { // live counter under "PharmaCam sayar."
         const p = EASE.expo(prog(t, 2.3, 3.75));
         const out = E.inExpo(prog(t, 3.75, 4.1));
         const base = y + hs * 1.25 + 150;
         ctx.save(); ctx.beginPath(); ctx.rect(x - 10, base - 170, L.tW + 200, 210); ctx.clip();
-        setFont(ctx, 800, 168, 'Inter', -7); ctx.fillStyle = rgba(INK); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        setFont(ctx, 800, 168, 'Inter', -7); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        const cg = ctx.createLinearGradient(x, base - 150, x + 340, base);
+        cg.addColorStop(0, rgba(ROSE)); cg.addColorStop(0.5, rgba(PEACH)); cg.addColorStop(1, rgba(GOLD));
+        ctx.shadowColor = rgba(ROSE, 0.55); ctx.shadowBlur = 50;
+        ctx.fillStyle = cg;
         ctx.fillText(String(Math.round(452 * p)), x - 6, base + out * 200 + (1 - EASE.expo(prog(t, 2.25, 2.7))) * 180);
+        ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
         ctx.restore();
-        setFont(ctx, 500, 32, 'Inter', 0); ctx.fillStyle = rgba(AMBER, (1 - out) * EASE.expo(prog(t, 2.5, 2.9)));
+        setFont(ctx, 600, 32, 'Inter', 0); ctx.fillStyle = rgba(PEACH, (1 - out) * EASE.expo(prog(t, 2.5, 2.9)));
         ctx.fillText(c.countLabel, x, base + 56);
       }
-      headline(ctx, c.l3, x, y, hs, L.tW, 4.15, 5.7, t);
-      headline(ctx, c.l4, x, y, hs, L.tW, 6.15, 7.7, t);
-      const h5 = headline(ctx, c.l5a, x, y, hs, L.tW, 8.15, 9.7, t);
+      headline(ctx, c.l3, x, y, hs, L.tW, 4.15, 5.7, t, { hl: c.hl.l3 });
+      headline(ctx, c.l4, x, y, hs, L.tW, 6.15, 7.7, t, { hl: c.hl.l4 });
+      const h5 = headline(ctx, c.l5a, x, y, hs, L.tW, 8.15, 9.7, t, { hl: c.hl.l5a });
       headline(ctx, c.l5b, x, y + h5, hs, L.tW, 8.55, 9.75, t, { color: SILVER });
-      headline(ctx, c.l6, x, y, hs, L.tW, 10.15, 11.7, t);
-      const h7 = headline(ctx, c.l7a, x, y, hs, L.tW, 12.15, 13.75, t);
+      headline(ctx, c.l6, x, y, hs, L.tW, 10.15, 11.7, t, { hl: c.hl.l6 });
+      const h7 = headline(ctx, c.l7a, x, y, hs, L.tW, 12.15, 13.75, t, { hl: c.hl.l7a });
       headline(ctx, c.l7b, x, y + h7, hs, L.tW, 13.0, 13.8, t, { color: SILVER });
-      headline(ctx, c.l8, x, y, hs, L.tW, 14.15, 15.65, t);
+      headline(ctx, c.l8, x, y, hs, L.tW, 14.15, 15.65, t, { hl: c.hl.l8 });
     }
+
+    for (const ts of [3.82, 5.82, 7.82, 9.82, 11.82, 13.95, 15.85]) sweep(ctx, W, H, t, ts);
 
     // ── end card (bars 8–9)
     if (t >= 15.9) {
       const cx = W / 2, cy = H * (L.land ? 0.42 : 0.42);
-      radialBlob(ctx, cx + 260 * Math.sin(t * 0.6), cy - 120, W * 0.42, [52, 52, 58], 0.5 * EASE.expo(prog(t, 15.9, 16.8)));
-      radialBlob(ctx, cx - 300, cy + 260, W * 0.36, [60, 46, 32], 0.35 * EASE.expo(prog(t, 16.0, 17.0)));
+      const wa = EASE.expo(prog(t, 15.9, 16.8));
+      radialBlob(ctx, cx + 320 * Math.sin(t * 0.6), cy - 140, W * 0.5, ROSE, 0.32 * wa);
+      radialBlob(ctx, cx - 360, cy + 260, W * 0.42, GOLD, 0.26 * wa);
+      radialBlob(ctx, cx + 420, cy + 220, W * 0.36, LILAC, 0.18 * wa);
+      if (t > 16.05 && t < 17.2) {   // a ring leaves the logo as it lands
+        const u = prog(t, 16.05, 17.2);
+        ctx.strokeStyle = rgba(ROSE, 0.55 * (1 - u)); ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(cx, cy, 80 + EASE.expo(u) * 520, 0, TAU); ctx.stroke();
+      }
       const ls = Math.min(1, W / 1920) * (L.land ? 1 : 1.25);
       const tile = 132 * ls, gap = 30 * ls, word = 118 * ls;
       setFont(ctx, 800, word, 'Inter', -word * 0.04);
       const ww = ctx.measureText('PharmaCam').width;
       const lx = cx - (tile + gap + ww) / 2;
-      logoTile(ctx, lx + tile / 2, cy, tile, spring(t - 16.05, 12, 6));
+      logoTile(ctx, lx + tile / 2, cy, tile, spring(t - 16.05, 11, 5));
+      { // glossy shimmer across the tile
+        const u = prog(t, 16.55, 17.25);
+        if (u > 0 && u < 1) {
+          ctx.save(); rrect(ctx, lx, cy - tile / 2, tile, tile, tile * 0.24); ctx.clip();
+          const sx2 = lx - tile + u * tile * 3;
+          const sg = ctx.createLinearGradient(sx2 - tile * 0.4, cy - tile / 2, sx2 + tile * 0.4, cy + tile / 2);
+          sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(0.5, 'rgba(255,240,235,0.55)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.fillStyle = sg; ctx.fillRect(lx, cy - tile / 2, tile, tile); ctx.restore();
+        }
+      }
       ctx.save(); ctx.beginPath(); ctx.rect(lx + tile + gap - 10, cy - word, ww + 40, word * 1.6); ctx.clip();
       const wp = EASE.expo(prog(t, 16.3, 17.0));
       ctx.fillStyle = rgba(INK); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
@@ -473,7 +535,10 @@ export default {
       ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
       ctx.save(); ctx.beginPath(); ctx.rect(0, cy + 150 * ls - tg * 1.1, W, tg * 1.5); ctx.clip();
       const tp = EASE.expo(prog(t, 16.85, 17.55));
-      ctx.fillStyle = rgba(SILVER); ctx.fillText(c.tagline, cx, cy + 150 * ls + (1 - tp) * tg * 1.2);
+      const tw2 = ctx.measureText(c.tagline).width;
+      const tgr = ctx.createLinearGradient(cx - tw2 / 2, 0, cx + tw2 / 2, 0);
+      tgr.addColorStop(0, rgba(ROSE)); tgr.addColorStop(0.5, rgba(PEACH)); tgr.addColorStop(1, rgba(GOLD));
+      ctx.fillStyle = tgr; ctx.fillText(c.tagline, cx, cy + 150 * ls + (1 - tp) * tg * 1.2);
       ctx.restore();
       chipLabel(ctx, cx, cy + 262 * ls, c.cta, spring(t - 17.5, 13, 6.5), { size: Math.round(36 * ls), weight: 700, fill: 'rgba(245,245,247,0.97)', ink: [10, 10, 11] });
       setFont(ctx, 600, Math.round(34 * ls), 'Inter', 0.2);
