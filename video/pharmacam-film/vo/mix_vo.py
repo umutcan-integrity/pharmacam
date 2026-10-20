@@ -9,7 +9,7 @@ from scipy.ndimage import uniform_filter1d
 HERE = Path(__file__).parent
 OUT = HERE.parent / 'out'
 SR = 48000
-OFFSETS = {8: 13.55}   # small manual nudges (line index → start time)
+OFFSETS = {8: 13.55, 10: 16.05}   # small manual nudges (line index → start time)
 
 sr, music = wavfile.read(OUT / 'audio.wav')
 assert sr == SR

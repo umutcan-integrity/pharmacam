@@ -62,10 +62,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--list', action='store_true')
     ap.add_argument('--voice')
+    ap.add_argument('--shared', help='search the public library for Turkish voices: female | male | all')
     a = ap.parse_args()
     if a.list:
         for v in json.loads(call('/voices'))['voices']:
             print(f"{v['name']:<28} {v['voice_id']}  {v.get('labels', {})}")
+        return
+    if a.shared:
+        q = '/shared-voices?page_size=30&language=tr&sort=usage_character_count_1y' + (f'&gender={a.shared}' if a.shared != 'all' else '')
+        for v in json.loads(call(q))['voices']:
+            print(f"{v['name'][:34]:<36} {v['voice_id']}  {v.get('gender')}/{v.get('age')}/{v.get('accent')}  {v.get('use_case')}  {str(v.get('descriptive'))}")
         return
     if not a.voice:
         raise SystemExit('--voice <voice_id> gerekli (önce --list)')
@@ -74,7 +80,7 @@ def main():
     for i, line in enumerate(lines, 1):
         t0, t1, text = line.split('\t')
         t0, win = float(t0), float(t1) - float(t0)
-        text = text.replace('Farma Kam', 'PharmaCam')      # ElevenLabs reads the brand name correctly
+        text = text.replace('Farma Kam', 'Farmakem')       # brand said the English way: FAR-ma-kem
         out = HERE / f'line{i:02d}.wav'
         speed = 1.0
         d = tts(text, a.voice, speed, out)
