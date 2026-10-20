@@ -73,7 +73,8 @@ img { display: block; max-width: 100%; height: auto; }
   border-bottom: 1px solid var(--stroke); background: rgba(3, 12, 9, .55);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 .contactbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 42px; flex-wrap: wrap; padding: 6px 0; }
-.contactbar .who { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--ink); }
+.contactbar .who { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.contactbar .role { color: var(--muted); font-weight: 500; }
 .avatar { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800;
   background: linear-gradient(135deg, var(--mint), var(--sky)); color: #04140e; }
 .contactbar .links { display: flex; gap: 18px; flex-wrap: wrap; }
@@ -344,6 +345,7 @@ footer a:hover { color: var(--ink); }
   .fan.in img:nth-child(3) { transform: translateX(22%) rotate(3deg); }
   .fan.in img:nth-child(4) { transform: translateX(60%) rotate(9deg) translateY(20px); }
   .contactbar .wrap { justify-content: center; }
+  .contactbar .role { display: none; }
   .contactbar .links { justify-content: center; gap: 6px 14px; }
   .btn { height: 50px; }
   .hero .cta .btn { width: 100%; }
@@ -384,7 +386,7 @@ footer a:hover { color: var(--ink); }
 <!-- ============================================================ CONTACT BAR -->
 <div class="contactbar">
   <div class="wrap">
-    <div class="who"><span class="avatar">UC</span>Umut Can Demirkaynak <span style="color:var(--muted);font-weight:500">· PharmaCam kurucusu</span></div>
+    <div class="who"><span class="avatar">UC</span>Umut Can Demirkaynak <span class="role">· PharmaCam kurucusu</span></div>
     <div class="links">
       <a href="mailto:umutcandemirkaynak@gmail.com"><svg><use href="#i-mail"/></svg>umutcandemirkaynak@gmail.com</a>
       <a href="tel:+905302442758"><svg><use href="#i-phone"/></svg>+90 530 244 27 58</a>
