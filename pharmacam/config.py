@@ -23,12 +23,17 @@ DEFAULTS: dict[str, Any] = {
     },
     "camera": {
         "source": "imx500",  # imx500 | simulator
-        "model": "/usr/share/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk",
+        # preset (yolo11n | nanodet | ssd, see camera/models.py) or a path to a .rpk network
+        "model": "yolo11n",
         "width": 1280,
         "height": 960,
-        "fps": 30,
+        "fps": "auto",  # auto: the highest rate at which the model analyses every frame
         "score_threshold": 0.45,
         "person_class": 0,
+        # box format of a custom .rpk (presets know their own): auto | yx | xy, and
+        # bbox_normalization true when its boxes come in input pixels
+        "bbox_order": "auto",
+        "bbox_normalization": None,
         "hflip": False,
         "vflip": False,
         "watchdog_seconds": 15,

@@ -10,10 +10,12 @@ device:
 
 camera:
   source: imx500               # imx500 | simulator
-  model: /usr/share/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk
+  # yapay zekâ modeli: yolo11n (en isabetli, AGPL-3.0) | nanodet (Apache-2.0) | ssd (MIT) | .rpk dosya yolu
+  # liste ve indirme: python -m pharmacam models --fetch
+  model: yolo11n
   width: 1280
   height: 960
-  fps: 30                      # görüntü hızı; yapay zekâ modeli bunun yarısında (~15/sn) analiz eder
+  fps: auto                    # auto: modelin her kareyi analiz edebildiği en yüksek hız (yolo11n 15, diğerleri 30)
   score_threshold: 0.45
   hflip: false                 # kamera ters monte edildiyse hflip+vflip: true
   vflip: false

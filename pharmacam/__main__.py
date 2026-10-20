@@ -2,6 +2,7 @@
 
     python -m pharmacam run                     # device service (camera + API + jobs)
     python -m pharmacam check                   # camera / model self-test
+    python -m pharmacam models [--fetch]        # detection models: list / download the configured one
     python -m pharmacam report --day 2026-10-19 # build a daily PDF
     python -m pharmacam backfill --days 35      # simulated history (demo / development only)
 """
@@ -47,6 +48,27 @@ def cmd_check(args, cfg: Config) -> int:
     return 0
 
 
+def cmd_models(args, cfg: Config) -> int:
+    """List the detection presets and (with --fetch) download the configured one."""
+    from .camera import models
+
+    active = models.resolve(cfg)
+    print(f"{'':2}{'ad':<9}{'model':<34}{'COCO mAP':>9}  {'kare/sn':>7}  lisans")
+    for m in models.MODELS.values():
+        mark = "→ " if active.spec is m else "  "
+        print(f"{mark}{m.key:<9}{m.title:<34}{m.coco_map:>9.3f}  {m.fps:>7}  {m.licence}")
+    if not active.spec:
+        print(f"→ özel model: {active.path}")
+    if args.fetch:
+        try:
+            m = models.ensure(cfg)
+        except Exception as e:
+            print(f"HATA: {e}")
+            return 1
+        print(f"OK: {m.title} hazır ({m.path})")
+    return 0
+
+
 def cmd_report(args, cfg: Config) -> None:
     from .reports.daily import generate_report
     from .storage.db import Store
@@ -80,6 +102,8 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("run", help="servisi başlat")
     c = sub.add_parser("check", help="kamera testi")
     c.add_argument("--seconds", type=float, default=5)
+    m = sub.add_parser("models", help="yapay zekâ modellerini listele / indir")
+    m.add_argument("--fetch", action="store_true", help="seçili modeli indir ve doğrula")
     r = sub.add_parser("report", help="günlük PDF rapor üret")
     r.add_argument("--day")
     r.add_argument("--out")
@@ -94,7 +118,8 @@ def main(argv: list[str] | None = None) -> int:
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     cfg = Config.load(args.config)
     timeutil.set_timezone(cfg["device"]["timezone"])
-    rc = {"run": cmd_run, "check": cmd_check, "report": cmd_report, "backfill": cmd_backfill}[args.cmd](args, cfg)
+    rc = {"run": cmd_run, "check": cmd_check, "models": cmd_models, "report": cmd_report,
+          "backfill": cmd_backfill}[args.cmd](args, cfg)
     return int(rc or 0)
 
 

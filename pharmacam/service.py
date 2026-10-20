@@ -161,12 +161,21 @@ class Runtime:
             "camera_ok": bool(live.camera_ok and time.time() - self.last_frame_at < 5),
             "camera_error": self.camera_error,
             "camera_source": self.cfg["camera"]["source"],
+            "model": self.model_info(),
             "fps": live.fps,
+            "video_fps": live.video_fps,
             "frames": self.frames,
             "last_frame_age_s": round(time.time() - self.last_frame_at, 1) if self.last_frame_at else None,
             "sync": self.sync_status,
             "system": system_stats(),
         }
+
+    def model_info(self) -> dict | None:
+        if self.cfg["camera"]["source"] != "imx500":
+            return None
+        from .camera import models
+
+        return models.describe(self.cfg, getattr(self._source, "model", None))
 
     def start_background(self) -> None:
         threading.Thread(target=self.camera_loop, name="camera", daemon=True).start()

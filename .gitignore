@@ -14,3 +14,4 @@ docs/build/
 pi_test.jpg
 pi_detect.jpg
 detect_demo.py
+/models/

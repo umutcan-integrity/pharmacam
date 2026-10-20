@@ -161,3 +161,38 @@ def test_simulator_counts_match_ground_truth(cfg):
     measured = store.day_counts(DAY)["entries"]
     assert truth_in >= 10
     assert abs(measured - truth_in) <= max(1, round(0.05 * truth_in)), (measured, truth_in)
+
+
+def test_model_presets_resolve(tmp_path):
+    from pharmacam.camera import models
+    from pharmacam.config import Config
+
+    cfg = Config({"camera": {"model": "yolo11n"}}, tmp_path / "config" / "pharmacam.yaml")
+    m = models.resolve(cfg)
+    assert m.spec.key == "yolo11n" and m.fps == 15 and m.bbox_order == "xy" and m.bbox_normalization is True
+    assert m.path == tmp_path / "models" / "imx500_network_yolo11n_pp.rpk"
+    # explicit settings win over the preset
+    cfg = Config({"camera": {"model": "yolo11n", "fps": 10, "bbox_order": "yx"}}, None)
+    m = models.resolve(cfg)
+    assert m.fps == 10 and m.bbox_order == "yx"
+    # a custom .rpk keeps what the file declares
+    cfg = Config({"camera": {"model": "/x/custom.rpk"}}, None)
+    m = models.resolve(cfg)
+    assert m.spec is None and m.bbox_order is None and m.bbox_normalization is None and m.fps == 30
+
+
+def test_model_download_is_verified(tmp_path, monkeypatch):
+    import io
+
+    from pharmacam.camera import models
+    from pharmacam.config import Config
+
+    cfg = Config({"camera": {"model": "yolo11n"}}, tmp_path / "config" / "pharmacam.yaml")
+    monkeypatch.setattr(models.urllib.request, "urlopen", lambda url, timeout: io.BytesIO(b"not the model"))
+    try:
+        models.ensure(cfg)
+        raise AssertionError("bad download accepted")
+    except RuntimeError as e:
+        assert "sha256" in str(e)
+    assert not (tmp_path / "models" / "imx500_network_yolo11n_pp.rpk").exists()
+    assert models.fallback().spec.key == "ssd"

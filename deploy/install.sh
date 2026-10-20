@@ -33,7 +33,7 @@ say "Kod $PREFIX dizinine yerleştiriliyor..."
 sudo mkdir -p "$PREFIX"
 sudo chown "$RUN_USER":"$RUN_USER" "$PREFIX"
 if [ -n "$SRC_DIR" ] && [ -f "$SRC_DIR/pharmacam/__init__.py" ] && [ "$SRC_DIR" != "$PREFIX" ]; then
-  rsync -a --delete --exclude .git --exclude .venv --exclude data --exclude 'config/pharmacam.yaml' \
+  rsync -a --delete --exclude .git --exclude .venv --exclude data --exclude models --exclude 'config/pharmacam.yaml' \
     "$SRC_DIR"/ "$PREFIX"/
 elif [ -d "$PREFIX/.git" ]; then
   git -C "$PREFIX" pull --ff-only
@@ -58,6 +58,10 @@ if [ ! -f "$PREFIX/config/pharmacam.yaml" ]; then
   echo "$PASS" > "$PREFIX/data/.panel-password"
   chmod 600 "$PREFIX/data/.panel-password" "$PREFIX/config/pharmacam.yaml"
 fi
+
+say "Yapay zekâ modeli hazırlanıyor..."
+"$PREFIX/venv/bin/python" -m pharmacam -c "$PREFIX/config/pharmacam.yaml" models --fetch \
+  || warn "Model indirilemedi (internet?). Servis modeli açılışta tekrar dener."
 
 say "Kamera kontrol ediliyor..."
 if rpicam-hello --list-cameras 2>&1 | grep -q imx500; then

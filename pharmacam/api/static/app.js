@@ -384,7 +384,8 @@ async function tickLive() {
   $("#lv-in").textContent = lv.entries_today;
   $("#lv-out").textContent = lv.exits_today;
   $("#lv-in-sub").textContent = lv.staff_entries_today ? `+${lv.staff_entries_today} personel girişi` : "müşteri";
-  $("#lv-fps").textContent = lv.camera_ok ? `${lv.fps} kare/sn işleniyor` : "kamera beklemede";
+  const mdl = S.info.model?.title?.split(" ")[0];
+  $("#lv-fps").textContent = lv.camera_ok ? `${lv.fps} kare/sn işleniyor${mdl ? ` · ${mdl}` : ""}` : "kamera beklemede";
   $("#hud-occ").textContent = lv.occupancy; $("#hud-q").textContent = lv.queue_length; $("#hud-st").textContent = lv.staff_on_duty;
   const names = lv.zone_names || {};
   const zl = (S.info.zones || []).filter((z) => z.type !== "entrance");

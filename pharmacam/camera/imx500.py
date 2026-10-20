@@ -11,6 +11,7 @@ from typing import Iterator
 
 import numpy as np
 
+from . import models
 from .base import Detection, Frame
 
 log = logging.getLogger(__name__)
@@ -32,13 +33,21 @@ class IMX500Source:
         if not Picamera2.global_camera_info():
             raise RuntimeError("Kamera bulunamadı (kablo bağlantısını kontrol edin)")
 
-        self.imx500 = IMX500(c["model"])
-        intr = self.imx500.network_intrinsics
-        if intr is None:
-            intr = NetworkIntrinsics()
+        try:
+            self.model = models.ensure(cfg)
+        except Exception as e:  # offline first boot, corrupt download...: keep counting anyway
+            self.model = models.fallback()
+            log.error("Seçili model hazır değil (%s) — geçici olarak %s kullanılıyor", e, self.model.title)
+        self.imx500 = IMX500(str(self.model.path))
+        intr = self.imx500.network_intrinsics or NetworkIntrinsics()
+        if intr.task is None:  # e.g. Ultralytics exports carry no intrinsics
             intr.task = "object detection"
         if intr.task != "object detection":
-            raise RuntimeError(f"Model bir nesne tespit modeli değil: {c['model']}")
+            raise RuntimeError(f"Model bir nesne tespit modeli değil: {self.model.path}")
+        if self.model.bbox_order:
+            intr.bbox_order = self.model.bbox_order
+        if self.model.bbox_normalization is not None:
+            intr.bbox_normalization = self.model.bbox_normalization
         intr.update_with_defaults()
         self.intr = intr
 
@@ -47,7 +56,7 @@ class IMX500Source:
         config = self.picam2.create_preview_configuration(
             # "BGR888" in libcamera naming == [R, G, B] byte order in numpy
             main={"size": self.size, "format": "BGR888"},
-            controls={"FrameRate": float(c["fps"])},
+            controls={"FrameRate": self.model.fps},
             buffer_count=6,
             transform=Transform(hflip=bool(c["hflip"]), vflip=bool(c["vflip"])),
         )
@@ -56,8 +65,8 @@ class IMX500Source:
         if intr.preserve_aspect_ratio:
             self.imx500.set_auto_aspect_ratio()
         self.input_w, self.input_h = self.imx500.get_input_size()
-        log.info("IMX500 hazır: model=%s giriş=%sx%s akış=%sx%s", c["model"].rsplit("/", 1)[-1],
-                 self.input_w, self.input_h, *self.size)
+        log.info("IMX500 hazır: model=%s (%s) giriş=%sx%s akış=%sx%s @ %s kare/sn", self.model.title,
+                 self.model.path.name, self.input_w, self.input_h, *self.size, self.model.fps)
 
     def _parse(self, metadata: dict) -> list[Detection] | None:
         outputs = self.imx500.get_outputs(metadata, add_batch=True)

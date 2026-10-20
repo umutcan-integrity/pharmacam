@@ -78,6 +78,7 @@ def create_app(rt) -> FastAPI:
             "today": timeutil.today(),
             "live_view": bool(cfg["server"]["live_view"]),
             "blur_people": bool(cfg["server"]["blur_people"]),
+            "model": rt.health()["model"],
             "opening_hour": cfg["reports"]["opening_hour"],
             "closing_hour": cfg["reports"]["closing_hour"],
         }
