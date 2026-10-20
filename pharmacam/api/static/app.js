@@ -4,6 +4,8 @@
 "use strict";
 
 const DEMO = window.PHARMACAM_DEMO || null;
+// ?shot=1 → still frame for documentation screenshots: no fades, trails or chart animation
+const SHOT = new URLSearchParams(location.search).has("shot");
 {
   const th = new URLSearchParams(location.search).get("theme");
   if (th === "light" || th === "dark") document.documentElement.dataset.theme = th;
@@ -11,12 +13,12 @@ const DEMO = window.PHARMACAM_DEMO || null;
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const S = { info: null, charts: {}, tab: "live", liveTimer: null, demoFrame: 0, fc: null, fcSel: 0, zones: [], zSel: -1 };
-const ZONE_TYPES = {
-  entrance: { name: "Giriş kapısı", color: "#ffc400" },
-  queue: { name: "Sıra alanı", color: "#ff6347" },
-  service: { name: "Tezgâh", color: "#ba55d3" },
-  staff: { name: "Personel", color: "#2ecc71" },
-  shelf: { name: "Raf", color: "#3498db" },
+const ZONE_TYPES = {  // one palette across panel, live view and film
+  entrance: { name: "Giriş kapısı", color: "#ffbe40" },
+  queue: { name: "Sıra alanı", color: "#ffbe40" },
+  service: { name: "Tezgâh", color: "#ff9670" },
+  staff: { name: "Personel", color: "#be98ff" },
+  shelf: { name: "Raf", color: "#ff5c8a" },
 };
 const LEVEL_ICON = { good: "✓", warn: "!", bad: "✕", info: "i" };
 
@@ -102,6 +104,7 @@ function renderInsights(el, items) {
 function chartDefaults() {
   Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
   Chart.defaults.font.size = 12;
+  if (SHOT) Chart.defaults.animation = false;
   Chart.defaults.color = css("--muted");
   Chart.defaults.borderColor = css("--grid");
   Chart.defaults.plugins.legend.labels.boxWidth = 12;
@@ -162,18 +165,184 @@ async function loadLive() {
     data: { labels: rows.map((r) => hh(r.hour)), datasets: [barDs("Giriş", rows.map((r) => r.entries), css("--s1"))] },
   });
   renderInsights($("#live-insights"), ins);
+  liveSetMode(S.info.live_view ? LIVE.mode : "plan");
   await tickLive();
-  S.liveTimer = setInterval(tickLive, 1000);
+  S.liveTimer = setInterval(tickLive, 500);
+  cancelAnimationFrame(LIVE.raf);
+  LIVE.raf = requestAnimationFrame(liveDraw);
 }
+
+/* -------------------------------------------------------------- live view
+ * The device sends a blurred frame plus people/zone data; the panel draws everything else
+ * on a canvas at display rate: tinted zones with live counts, glowing people with trails,
+ * queue timers and staff chips. Positions arrive twice a second and are eased in between. */
+const LIVE = { people: new Map(), za: {}, last: null, raf: 0, mode: "cam", pulse: 0, entries: null, seq: null, i: -1, t: 0 };
+try { LIVE.mode = localStorage.getItem("pc-live-mode") || "cam"; } catch { /* private mode */ }
+const ZC = { shelf: [255, 92, 138], queue: [255, 190, 64], service: [255, 150, 112], staff: [190, 152, 255], entrance: [255, 190, 64] };
+const ROSE = [255, 92, 138], GOLD = [255, 190, 64], LILAC = [190, 152, 255];
+const rgbaJ = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+function liveSetMode(m) {
+  LIVE.mode = m;
+  $("#live-wrap").classList.toggle("plan", m === "plan");
+  $$("#lv-mode button").forEach((b) => b.classList.toggle("active", b.dataset.m === m));
+  try { localStorage.setItem("pc-live-mode", m); } catch { /* ignore */ }
+}
+
+function liveIngest(lv) {
+  const now = performance.now(), seen = new Set();
+  for (const t of lv.tracks || []) {
+    const foot = t.foot || [(t.box[0] + t.box[2]) / 2, t.box[3]];
+    let p = LIVE.people.get(t.id);
+    if (!p) { p = { id: t.id, x: foot[0], y: foot[1], trail: [], born: now, lastTrail: 0 }; LIVE.people.set(t.id, p); }
+    Object.assign(p, { tx: foot[0], ty: foot[1], staff: t.staff, wait: t.wait, waitAt: now, gone: 0 });
+    seen.add(t.id);
+  }
+  for (const p of LIVE.people.values()) if (!seen.has(p.id) && !p.gone) p.gone = now;
+  if (LIVE.entries !== null && lv.entries_today > LIVE.entries) LIVE.pulse = now;
+  LIVE.entries = lv.entries_today;
+  LIVE.last = lv;
+}
+
+const chipFont = (k) => `600 ${Math.round(Math.max(10, Math.min(13, 12 * k)))}px -apple-system, BlinkMacSystemFont, Inter, "Segoe UI", sans-serif`;
+function chipSize(g, text, dot, k) {
+  g.font = chipFont(k);
+  return [g.measureText(text).width + 18 + (dot ? 12 : 0), Math.max(19, 22 * k)];
+}
+/** Place chips greedily in priority order; each chip tries its candidate positions and is
+ *  skipped when every candidate would overlap a chip already placed (or leave the frame). */
+function placeChips(g, chips, k, W, H, reserved = []) {
+  const placed = [...reserved];
+  chips.sort((a, b) => b.prio - a.prio);
+  for (const c of chips) {
+    const [w, h] = chipSize(g, c.text, c.dot, k);
+    for (const [x, y] of c.at) {
+      const r = [x - w / 2 - 3, y - h / 2 - 3, x + w / 2 + 3, y + h / 2 + 3];
+      if (r[0] < 2 || r[2] > W - 2 || r[1] < 2 || r[3] > H - 2) continue;
+      if (placed.some((q) => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1])) continue;
+      placed.push(r);
+      g.globalAlpha = c.alpha ?? 1; chipAt(g, x, y, c.text, c.dot, k); g.globalAlpha = 1;
+      break;
+    }
+  }
+}
+function chipAt(g, x, y, text, dot, k) {
+  const [w, h] = chipSize(g, text, dot, k), padX = 9, dw = dot ? 12 : 0;
+  g.beginPath(); g.roundRect(x - w / 2, y - h / 2, w, h, h / 2);
+  g.fillStyle = "rgba(16,16,18,.78)"; g.fill();
+  g.strokeStyle = "rgba(255,255,255,.16)"; g.lineWidth = 1; g.stroke();
+  if (dot) { g.fillStyle = rgbaJ(dot, 1); g.beginPath(); g.arc(x - w / 2 + padX + 3.5, y, 3.5, 0, 7); g.fill(); }
+  g.fillStyle = "#f5f5f7"; g.textBaseline = "middle"; g.textAlign = "left";
+  g.fillText(text, x - w / 2 + padX + dw, y + 0.5);
+}
+
+function liveDraw(now) {
+  const cv = $("#live-canvas");
+  if (!cv || S.tab !== "live") return;
+  const wrap = $("#live-wrap"), dpr = Math.min(2, devicePixelRatio || 1);
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const k = W / 820, rawDt = (now - (LIVE.t || now)) / 1000, dt = Math.min(0.1, rawDt); LIVE.t = now;
+  const lv = LIVE.last || {}, counts = lv.zone_counts || {};
+  const chips = [];
+  // keep the corners free for the HUD / legend that sit on top of the canvas
+  const hudOn = W >= 560;
+  const reserved = hudOn ? [[0, 0, Math.min(W, 470), 50], [Math.max(0, W - 420), H - 34, W, H]] : [[Math.max(0, W - 200), H - 30, W, H]];
+
+  if (LIVE.mode === "plan") {          // "no image" mode: a quiet dotted floor
+    g.fillStyle = "rgba(255,255,255,.07)";
+    const sp = 22 * k;
+    for (let y = sp / 2; y < H; y += sp) for (let x = sp / 2; x < W; x += sp) { g.beginPath(); g.arc(x, y, 1.1, 0, 7); g.fill(); }
+  }
+
+  // zones
+  for (const z of S.info.zones || []) {
+    const col = ZC[z.type] || [200, 200, 200];
+    if (z.type === "entrance") {
+      if (!z.line || z.line.length < 2) continue;
+      const [[ax, ay], [bx, by]] = z.line.map(([x, y]) => [x * W, y * H]);
+      const pu = Math.max(0, 1 - (now - LIVE.pulse) / 900);
+      const lg = g.createLinearGradient(ax, ay, bx, by);
+      lg.addColorStop(0, rgbaJ(ROSE, .9)); lg.addColorStop(1, rgbaJ(GOLD, .9));
+      g.lineCap = "round";
+      g.strokeStyle = rgbaJ(GOLD, .16 + .3 * pu); g.lineWidth = 14 * k + 10 * pu; g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
+      g.strokeStyle = lg; g.lineWidth = 3.2 * k; g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
+      if (pu > 0) { g.strokeStyle = rgbaJ(GOLD, .6 * pu); g.lineWidth = 2; g.beginPath(); g.arc((ax + bx) / 2, (ay + by) / 2, 10 + (1 - pu) * 60 * k, Math.PI, 2 * Math.PI); g.stroke(); }
+      chips.push({ text: z.name, dot: GOLD, prio: 50, at: [[(ax + bx) / 2, ay - 18 * k], [(ax + bx) / 2, ay + 18 * k]] });
+      continue;
+    }
+    if (!z.polygon || z.polygon.length < 3) continue;
+    const pts = z.polygon.map(([x, y]) => [x * W, y * H]);
+    const n = counts[z.id] || 0;
+    LIVE.za[z.id] = (LIVE.za[z.id] ?? 0) + ((n > 0 ? 1 : 0) - (LIVE.za[z.id] ?? 0)) * (1 - Math.exp(-dt * 4));
+    const a = LIVE.za[z.id];
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const x0 = Math.min(...xs), y0 = Math.min(...ys), x1 = Math.max(...xs), y1 = Math.max(...ys);
+    g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath();
+    const fg = g.createLinearGradient(x0, y0, x1, y1);
+    fg.addColorStop(0, rgbaJ(col, .12 + .2 * a)); fg.addColorStop(1, rgbaJ(col, .02 + .05 * a));
+    g.fillStyle = fg; g.fill();
+    g.setLineDash([5 * k, 6 * k]); g.strokeStyle = rgbaJ(col, .4 + .45 * a); g.lineWidth = 1.3 + a; g.stroke(); g.setLineDash([]);
+    // label: name + live count, inside the zone (top-left, else bottom-left, else centre)
+    const label = n ? `${z.name} · ${n}` : z.name;
+    const [lw, lh] = chipSize(g, label, col, k);
+    chips.push({ text: label, dot: col, prio: 40 + n, at: [[x0 + 8 + lw / 2, y0 + 8 + lh / 2], [x0 + 8 + lw / 2, y1 - 8 - lh / 2], [(x0 + x1) / 2, (y0 + y1) / 2]] });
+  }
+
+  // people
+  for (const [id, p] of LIVE.people) {
+    // after a stall (hidden tab, slow device) jump straight to the target instead of streaking across
+    if (rawDt > 0.25 || SHOT) { p.x = p.tx; p.y = p.ty; p.trail = []; }
+    const f = 1 - Math.exp(-dt * 7);
+    p.x += (p.tx - p.x) * f; p.y += (p.ty - p.y) * f;
+    if (now - p.lastTrail > 50) { p.trail.push([p.x, p.y]); if (p.trail.length > 22) p.trail.shift(); p.lastTrail = now; }
+    const fadeIn = SHOT ? 1 : Math.min(1, (now - p.born) / 400), fadeOut = p.gone ? 1 - (now - p.gone) / 600 : 1;
+    if (fadeOut <= 0) { LIVE.people.delete(id); continue; }
+    const al = fadeIn * fadeOut, X = p.x * W, Y = p.y * H;
+    const c1 = p.staff ? LILAC : ROSE, c2 = p.staff ? LILAC : GOLD;
+    for (let i = 1; i < p.trail.length; i++) {            // trail
+      const [ax, ay] = p.trail[i - 1], [bx, by] = p.trail[i];
+      g.strokeStyle = rgbaJ(c1, al * .45 * (i / p.trail.length)); g.lineWidth = 3 * k * (i / p.trail.length) + .5;
+      g.beginPath(); g.moveTo(ax * W, ay * H); g.lineTo(bx * W, by * H); g.stroke();
+    }
+    const R = 26 * k, hg = g.createRadialGradient(X, Y, 0, X, Y, R);
+    hg.addColorStop(0, rgbaJ(c1, .45 * al)); hg.addColorStop(1, rgbaJ(c2, 0));
+    g.fillStyle = hg; g.fillRect(X - R, Y - R, 2 * R, 2 * R);
+    if (!p.staff) {                                          // soft pulse
+      const ph = ((now / 1000 + id * 0.37) % 2.4) / 2.4;
+      g.strokeStyle = rgbaJ(c1, (1 - ph) * .35 * al); g.lineWidth = 1.5;
+      g.beginPath(); g.arc(X, Y, 8 * k + 20 * k * ph, 0, 7); g.stroke();
+    }
+    const cg = g.createLinearGradient(X - 7, Y - 7, X + 7, Y + 7);
+    cg.addColorStop(0, rgbaJ(c1, al)); cg.addColorStop(1, rgbaJ(c2, al));
+    g.fillStyle = cg; g.beginPath(); g.arc(X, Y, 6.5 * k + 1.5, 0, 7); g.fill();
+    g.strokeStyle = `rgba(12,12,14,${.9 * al})`; g.lineWidth = 2; g.stroke();
+    const off = 16 * k + 4;
+    if (p.staff) chips.push({ text: "Personel", dot: LILAC, prio: 20, alpha: al, at: [[X, Y - off - 6], [X, Y + off + 6]] });
+    else if (p.wait != null) {
+      const w = p.wait + (now - p.waitAt) / 1000, txt = `⏱ ${mmss(w)}`, [cw] = chipSize(g, txt, null, k);
+      chips.push({ text: txt, dot: null, prio: 30 + w / 60, alpha: al, at: [[X + off + cw / 2, Y], [X - off - cw / 2, Y], [X, Y - off - 6]] });
+    }
+  }
+  placeChips(g, chips, k, W, H, reserved);
+  LIVE.raf = requestAnimationFrame(liveDraw);
+}
+
 async function tickLive() {
-  let lv;
+  let lv, frame;
   if (DEMO) {
-    const n = DEMO.liveFrames || 1;
-    S.demoFrame = (S.demoFrame + 1) % n;
-    lv = await fetch(`${DEMO.base}live/live_${pad(S.demoFrame)}.json`).then((r) => r.json());
+    if (!LIVE.seq) LIVE.seq = await fetch(`${DEMO.base}live/seq.json`).then((r) => r.json());
+    LIVE.i = (LIVE.i + 1) % LIVE.seq.length;
+    lv = LIVE.seq[LIVE.i];
+    frame = `${DEMO.base}live/frame_${String(LIVE.i).padStart(3, "0")}.jpg`;
   } else {
     lv = await api("/api/live");
+    frame = `api/live.jpg?raw=1&t=${Date.now()}`;
   }
+  liveIngest(lv);
   $("#lv-occ").textContent = lv.occupancy;
   $("#lv-queue").textContent = lv.queue_length;
   $("#lv-queue-sub").textContent = lv.queue_waits?.length ? `en uzun bekleme ${fmtDur(lv.queue_waits[0])}` : "sıra yok";
@@ -182,27 +351,24 @@ async function tickLive() {
   $("#lv-out").textContent = lv.exits_today;
   $("#lv-in-sub").textContent = lv.staff_entries_today ? `+${lv.staff_entries_today} personel girişi` : "müşteri";
   $("#lv-fps").textContent = lv.camera_ok ? `${lv.fps} kare/sn işleniyor` : "kamera beklemede";
+  $("#hud-occ").textContent = lv.occupancy; $("#hud-q").textContent = lv.queue_length; $("#hud-st").textContent = lv.staff_on_duty;
   const names = lv.zone_names || {};
   const zl = (S.info.zones || []).filter((z) => z.type !== "entrance");
   $("#zone-live").innerHTML = zl.map((z) => `<li><span class="sw" style="background:${ZONE_TYPES[z.type].color}"></span>${esc(names[z.id] || z.name)}<span class="muted small">${ZONE_TYPES[z.type].name}</span><span class="n">${lv.zone_counts?.[z.id] || 0}</span></li>`).join("");
 
   const img = $("#live-img"), off = $("#live-off");
-  if (!S.info.live_view) {
-    off.textContent = "Canlı görüntü ayarlardan kapatılmış.";
-    off.classList.remove("hidden");
-  } else if (!lv.camera_ok && !DEMO) {
+  if (!lv.camera_ok && !DEMO) {
     off.textContent = "Kamera bağlı değil veya başlatılıyor. Sayaçlar ve geçmiş veriler kullanılabilir.";
     off.classList.remove("hidden");
-  } else {
-    off.classList.add("hidden");
-    const src = DEMO ? `${DEMO.base}live/frame_${pad(S.demoFrame)}.jpg` : `api/live.jpg?t=${Date.now()}`;
-    if (!img._busy) {
-      img._busy = true;
-      const pre = new Image();
-      pre.onload = () => { img.src = pre.src; img._busy = false; };
-      pre.onerror = () => { img._busy = false; };
-      pre.src = src;
-    }
+    return;
+  }
+  off.classList.add("hidden");
+  if (S.info.live_view && LIVE.mode === "cam" && !img._busy) {
+    img._busy = true;
+    const pre = new Image();
+    pre.onload = () => { img.src = pre.src; img._busy = false; };
+    pre.onerror = () => { img._busy = false; };
+    pre.src = frame;
   }
 }
 
@@ -575,7 +741,7 @@ async function tickHealth() {
 /* ----------------------------------------------------------------- boot */
 async function boot() {
   chartDefaults();
-  if (DEMO && !new URLSearchParams(location.search).has("shot")) {
+  if (DEMO && !SHOT) {
     document.body.insertAdjacentHTML("afterbegin", `<div class="demo-banner">Bu bir <b>demo</b>: veriler simülasyondur. ${DEMO.home ? `<a href="${DEMO.home}">← Ürün sayfasına dön</a>` : ""}</div>`);
   }
   S.info = await api("/api/info");
@@ -598,6 +764,10 @@ async function boot() {
     loadReports();
   });
   $("#set-save").addEventListener("click", (e) => { e.preventDefault(); saveSettings(); });
+  $$("#lv-mode button").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.m === "cam" && !S.info.live_view) { toast("Canlı görüntü ayarlardan kapalı"); return; }
+    liveSetMode(b.dataset.m);
+  }));
   bindZoneEditor();
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { chartDefaults(); showTab(S.tab); });
   tickHealth();

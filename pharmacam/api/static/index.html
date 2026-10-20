@@ -44,8 +44,21 @@
     </div>
     <div class="grid-2">
       <div class="card">
-        <div class="card-head"><h2>Canlı görüntü</h2><span class="muted small">kişiler bulanıklaştırılır · görüntü kaydedilmez</span></div>
-        <div class="live-wrap"><img id="live-img" alt="Canlı kamera görüntüsü, bölgeler ve kişi kutuları ile"><div id="live-off" class="live-off hidden"></div></div>
+        <div class="card-head"><h2>Canlı görüntü</h2>
+          <div class="seg seg-sm" id="lv-mode" role="tablist" aria-label="Görünüm"><button data-m="cam" class="active">Kamera</button><button data-m="plan">Görüntüsüz</button></div>
+        </div>
+        <div class="live-wrap" id="live-wrap">
+          <img id="live-img" alt="Canlı kamera görüntüsü (kişiler bulanıklaştırılmış)">
+          <canvas id="live-canvas" aria-hidden="true"></canvas>
+          <div class="live-hud">
+            <span class="hud-pill"><i class="live-dot"></i>Canlı</span>
+            <span class="hud-pill"><b id="hud-occ">0</b> içeride</span>
+            <span class="hud-pill"><b id="hud-q">0</b> sırada</span>
+            <span class="hud-pill"><b id="hud-st">0</b> personel</span>
+          </div>
+          <div class="live-legend"><span><i class="lg-c"></i>Müşteri</span><span><i class="lg-s"></i>Personel</span><span class="muted">kişiler bulanık · görüntü kaydedilmez</span></div>
+          <div id="live-off" class="live-off hidden"></div>
+        </div>
       </div>
       <div class="card">
         <div class="card-head"><h2>Bölgelerde şu an</h2></div>

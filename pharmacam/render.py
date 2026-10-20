@@ -8,12 +8,12 @@ try:
 except ImportError:  # pragma: no cover
     cv2 = None
 
-ZONE_COLORS = {  # RGB
-    "entrance": (255, 196, 0),
-    "queue": (255, 99, 71),
-    "service": (186, 85, 211),
-    "staff": (46, 204, 113),
-    "shelf": (52, 152, 219),
+ZONE_COLORS = {  # RGB — same palette as the panel and the film
+    "entrance": (255, 190, 64),
+    "queue": (255, 190, 64),
+    "service": (255, 150, 112),
+    "staff": (190, 152, 255),
+    "shelf": (255, 92, 138),
 }
 
 

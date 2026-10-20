@@ -29,7 +29,7 @@ from pharmacam.config import Config  # noqa: E402
 SITE = ROOT / "site"
 DEMO = SITE / "demo"
 DATA = DEMO / "demo-data"
-LIVE_FRAMES = 40
+LIVE_FRAMES = 80  # 40 s at 2 fps
 
 
 def api_key(path: str, params: dict | None = None) -> str:
@@ -154,11 +154,12 @@ def main() -> None:
 
 
 def record_live(cfg: Config, today: str) -> None:
-    """Record a short live sequence (annotated frames + live JSON) from the simulator."""
+    """Record a 40 s live sequence from the simulator: blurred frames (no drawings — the panel draws
+    zones and people itself) and the matching live snapshots, both at 2 fps."""
     from pharmacam.analytics.engine import AnalyticsEngine
     from pharmacam.analytics.heatmap import encode_jpeg
     from pharmacam.camera.simulator import SimulatorSource
-    from pharmacam.render import annotate
+    from pharmacam.render import blur_boxes
     from pharmacam.storage.db import Store
 
     live_dir = DATA / "live"
@@ -168,10 +169,10 @@ def record_live(cfg: Config, today: str) -> None:
     cfg.data["simulator"].update(realtime=False, start_ts=start, duration_s=200, seed=5, hour_override=18)
     engine = AnalyticsEngine(cfg, Store(":memory:"))
     base = json.loads((DATA / (api_key("/api/summary", {"day": today}) + ".json")).read_text())
-    k = 0
+    seq = []
     for i, frame in enumerate(SimulatorSource(cfg).frames()):
         live = engine.process(frame)
-        if i < 600 or i % 10:  # 60 s warm-up, then one frame per second
+        if i < 600 or i % 5:  # 60 s warm-up, then 2 samples per second
             continue
         snap = engine.snapshot()
         snap["camera_ok"] = True
@@ -179,12 +180,12 @@ def record_live(cfg: Config, today: str) -> None:
         # show the day's real totals so far (18:00) instead of the short simulation's
         snap["entries_today"] = int(base["entries"] * 0.78) + live.entries_today
         snap["exits_today"] = snap["entries_today"] - live.occupancy
-        (live_dir / f"live_{k:02d}.json").write_text(json.dumps(snap, ensure_ascii=False))
-        img = annotate(frame.image, snap, cfg.zones, blur=True)
-        (live_dir / f"frame_{k:02d}.jpg").write_bytes(encode_jpeg(img, 78))
-        k += 1
-        if k >= LIVE_FRAMES:
+        seq.append(snap)
+        img = blur_boxes(frame.image, [t["box"] for t in snap["tracks"]])
+        (live_dir / f"frame_{len(seq) - 1:03d}.jpg").write_bytes(encode_jpeg(img, 72))
+        if len(seq) >= LIVE_FRAMES:
             break
+    (live_dir / "seq.json").write_text(json.dumps(seq, ensure_ascii=False, separators=(",", ":")))
 
 
 if __name__ == "__main__":

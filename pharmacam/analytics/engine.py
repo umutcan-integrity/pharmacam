@@ -396,12 +396,19 @@ class AnalyticsEngine:
         if len(self._fps_times) > 1:
             span = self._fps_times[-1] - self._fps_times[0]
             lv.fps = round((len(self._fps_times) - 1) / span, 1) if span > 0 else 0.0
+        def _zone_now(t: Track) -> str | None:
+            return next((zid for zid, st in t.meta.get("zones", {}).items() if not st.get("closed")), None)
+
         lv.tracks = [{
             "id": t.id,
             "box": [round(v, 4) for v in t.box],
+            "foot": [round(v, 4) for v in t.foot],
             "staff": bool(t.meta.get("is_staff")),
             "coat": round(t.meta.get("coat_score", 0.0), 2),
             "seen_s": round(t.meta.get("seen_s", 0.0), 1),
+            "zone": _zone_now(t),
+            "wait": (round(ts - t.meta["queue_start"], 1)
+                     if "queue_start" in t.meta and not t.meta.get("served") else None),
         } for t in active]
 
         acc = self._minute_acc(ts)

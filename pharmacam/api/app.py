@@ -89,20 +89,25 @@ def create_app(rt) -> FastAPI:
         snap["zone_names"] = zone_names()
         return snap
 
-    def _live_jpeg() -> bytes | None:
-        from ..render import annotate
+    def _live_jpeg(raw: bool = False) -> bytes | None:
+        from ..render import annotate, blur_boxes
 
         img = engine.last_frame
         if img is None:
             return None
-        out = annotate(img, engine.snapshot(), cfg.zones, blur=bool(cfg["server"]["blur_people"]))
-        return hm.encode_jpeg(out, 75)
+        snap = engine.snapshot()
+        if raw:  # people blurred, no drawings: the dashboard draws its own overlay
+            out = blur_boxes(img, [t["box"] for t in snap["tracks"]]) if cfg["server"]["blur_people"] else img
+        else:
+            out = annotate(img, snap, cfg.zones, blur=bool(cfg["server"]["blur_people"]))
+        return hm.encode_jpeg(out, 78)
 
     @app.get("/api/live.jpg", tags=["Canlı"], dependencies=[Depends(auth)])
-    def live_jpg():
+    def live_jpg(raw: bool = False):
+        """Current frame. `raw=true`: blurred people only (the panel overlays zones and people itself)."""
         if not cfg["server"]["live_view"]:
             raise HTTPException(403, "Canlı görüntü kapalı")
-        data = _live_jpeg()
+        data = _live_jpeg(raw)
         if data is None:
             raise HTTPException(503, "Henüz görüntü yok")
         return Response(data, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
