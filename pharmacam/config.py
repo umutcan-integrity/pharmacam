@@ -26,7 +26,7 @@ DEFAULTS: dict[str, Any] = {
         "model": "/usr/share/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk",
         "width": 1280,
         "height": 960,
-        "fps": 15,
+        "fps": 30,
         "score_threshold": 0.45,
         "person_class": 0,
         "hflip": False,

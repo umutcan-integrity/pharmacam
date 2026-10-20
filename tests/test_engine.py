@@ -130,3 +130,24 @@ def test_fast_walker_born_inside_door_is_counted(cfg):
     scene = Scene(ts_at(DAY, 10)).add([(0, 0.18, 0.90), (3, 0.3, 0.6), (10, 0.3, 0.6)])
     store, _ = run(cfg, scene, 10)
     assert store.day_counts(DAY)["entries"] == 1
+
+
+def test_frames_without_new_detections_keep_counts(cfg):
+    # IMX500 at 30 fps: every other frame repeats the previous detections (fresh=False).
+    # Those frames must update the picture only, and the journey must count exactly as before.
+    from dataclasses import replace
+
+    scene = Scene(ts_at(DAY, 10)).add(customer_path())
+    store = Store(":memory:")
+    eng = AnalyticsEngine(cfg, store)
+    last = None
+    for f in scene.frames(52):
+        if last is not None:  # a stale copy in between, half a frame later
+            eng.process(replace(last, ts=(last.ts + f.ts) / 2, fresh=False))
+            assert eng.last_frame_ts == (last.ts + f.ts) / 2
+        eng.process(f)
+        last = f
+    eng.flush()
+    s = q.summary(store, DAY)
+    assert s["entries"] == 1 and s["exits"] == 1 and s["served"] == 1
+    assert eng.live.video_fps > eng.live.fps > 0

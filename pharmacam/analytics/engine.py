@@ -73,7 +73,8 @@ class LiveState:
     exits_today: int = 0
     staff_entries_today: int = 0
     tracks: list[dict[str, Any]] = field(default_factory=list)
-    fps: float = 0.0
+    fps: float = 0.0  # analysed frames per second (new detections)
+    video_fps: float = 0.0  # camera frames per second (what the live picture shows)
     camera_ok: bool = False
     zone_counts: dict[str, int] = field(default_factory=dict)
 
@@ -96,6 +97,7 @@ class AnalyticsEngine:
         self.lock = threading.RLock()
         self.live = LiveState()
         self._fps_times: deque[float] = deque(maxlen=60)
+        self._video_times: deque[float] = deque(maxlen=90)
         self._last_ts: float | None = None
         self._day: str | None = None
         self._counter = 0
@@ -132,6 +134,17 @@ class AnalyticsEngine:
     # --------------------------------------------------------------- per frame
     def process(self, frame: Frame) -> LiveState:
         with self.lock:
+            self._video_times.append(frame.ts)
+            if len(self._video_times) > 1 and self._video_times[-1] > self._video_times[0]:
+                span = self._video_times[-1] - self._video_times[0]
+                self.live.video_fps = round((len(self._video_times) - 1) / span, 1)
+            if not frame.fresh:
+                # same detections as the previous frame: feeding them to the tracker again would
+                # read as people standing still; only the live picture moves on
+                if frame.image is not None:
+                    self.last_frame = frame.image
+                    self.last_frame_ts = frame.ts
+                return self.live
             ts = frame.ts
             dt = 0.0 if self._last_ts is None else min(max(ts - self._last_ts, 0.0), 1.0)
             self._last_ts = ts

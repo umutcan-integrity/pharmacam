@@ -204,7 +204,7 @@ function liveVideo(on) {
   if (on === LIVE.streaming) return;
   LIVE.streaming = on;
   img.onerror = on ? () => { LIVE.streaming = false; setTimeout(() => liveVideo(true), 2000); } : null;
-  img.src = on ? `api/live.mjpg?raw=1&t=${Date.now()}` : BLANK;   // a new src aborts the old stream
+  img.src = on ? `api/live.mjpg?raw=1&fps=30&t=${Date.now()}` : BLANK;   // a new src aborts the old stream
 }
 function liveConnect() {
   if (DEMO || LIVE.es || !window.EventSource) return;

@@ -91,10 +91,10 @@ class IMX500Source:
             finally:
                 request.release()
             dets = self._parse(metadata)
-            if dets is None:
-                dets = last
-            last = dets
-            yield Frame(ts=time.time(), image=np.ascontiguousarray(image[..., :3]), detections=dets)
+            fresh = dets is not None
+            if fresh:
+                last = dets
+            yield Frame(ts=time.time(), image=np.ascontiguousarray(image[..., :3]), detections=last, fresh=fresh)
 
     def close(self) -> None:
         try:

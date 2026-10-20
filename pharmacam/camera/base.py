@@ -24,6 +24,9 @@ class Frame:
     ts: float  # unix seconds
     image: np.ndarray | None  # RGB uint8 HxWx3, may be None when not needed
     detections: list[Detection]
+    # False: the detector produced nothing new for this frame (the IMX500 runs its network on
+    # every other frame at 30 fps) — the picture is still current, the detections are not
+    fresh: bool = True
 
 
 class FrameSource(Protocol):
