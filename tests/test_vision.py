@@ -158,3 +158,19 @@ def test_person_leaving_through_the_bottom_edge_does_not_run_away():
         if ended and ended_at is None:
             ended_at = t
     assert ended_at is not None and ended_at <= 2.5
+
+
+def test_clothing_signature_tells_people_apart():
+    from pharmacam.vision import appearance
+
+    rng = np.random.default_rng(1)
+    img = np.zeros((200, 200, 3), np.uint8)
+    img[:, :100] = (40, 70, 170)  # blue coat
+    img[:, 100:] = (200, 40, 40)  # red coat
+    noisy = np.clip(img.astype(int) + rng.integers(-12, 12, img.shape), 0, 255).astype(np.uint8)
+    blue1 = appearance.signature(img, (0.05, 0.05, 0.45, 0.95))
+    blue2 = appearance.signature(noisy, (0.06, 0.08, 0.46, 0.97))
+    red = appearance.signature(img, (0.55, 0.05, 0.95, 0.95))
+    assert appearance.distance(blue1, blue2) < 0.15
+    assert appearance.distance(blue1, red) > 0.6
+    assert appearance.signature(img, (0.1, 0.1, 0.11, 0.12)) is None  # too small to judge

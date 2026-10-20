@@ -78,7 +78,7 @@ class VideoFileSource:
         cap = cv2.VideoCapture(str(self.path))
         src_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
         step = max(1, round(src_fps / self.fps))  # analyse every n-th frame of a fast clip
-        idx, loops = 0, 0
+        idx, loops, cut = 0, 0, False
         clip_t0 = time.monotonic()
         try:
             while True:
@@ -88,7 +88,7 @@ class VideoFileSource:
                         return
                     cap.release()
                     cap = cv2.VideoCapture(str(self.path))
-                    idx, loops, clip_t0 = 0, loops + 1, time.monotonic()
+                    idx, loops, clip_t0, cut = 0, loops + 1, time.monotonic(), True
                     continue
                 idx += 1
                 if (idx - 1) % step:
@@ -98,7 +98,8 @@ class VideoFileSource:
                     if delay > 0:
                         time.sleep(delay)
                 rgb = np.ascontiguousarray(bgr[..., ::-1])
-                yield Frame(ts=time.time(), image=rgb, detections=self._detect(rgb))
+                yield Frame(ts=time.time(), image=rgb, detections=self._detect(rgb), cut=cut)
+                cut = False
         finally:
             cap.release()
 

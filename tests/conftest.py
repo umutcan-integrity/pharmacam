@@ -49,8 +49,8 @@ class Scene:
         self.people: list[dict] = []
         self.size = size
 
-    def add(self, keyframes, coat=False):
-        self.people.append({"kf": keyframes, "coat": coat})
+    def add(self, keyframes, coat=False, color=(30, 60, 160)):
+        self.people.append({"kf": keyframes, "coat": coat, "color": color})
         return self
 
     def _pos(self, kf, t):
@@ -76,7 +76,7 @@ class Scene:
                 box = person_box(*pos)
                 dets.append(Detection(box, 0.9))
                 x1, y1, x2, y2 = (int(box[0] * w), int(box[1] * h), int(box[2] * w), int(box[3] * h))
-                torso = (245, 245, 245) if p["coat"] else (30, 60, 160)
+                torso = (245, 245, 245) if p["coat"] else p["color"]
                 img[max(0, y1):max(0, y2), max(0, x1):max(0, x2)] = torso
             yield Frame(ts=self.start + t, image=img, detections=dets)
 

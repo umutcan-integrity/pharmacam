@@ -205,10 +205,11 @@ function liveVideo(on) {
   if (on === LIVE.streaming) return;
   LIVE.streaming = on;
   img.onerror = on ? () => { LIVE.streaming = false; setTimeout(() => liveVideo(true), 2000); } : null;
-  img.src = on ? `api/live.mjpg?raw=1&fps=30&t=${Date.now()}` : BLANK;   // a new src aborts the old stream
+  // ?shot=1 (documentation screenshots) takes one still frame: a stream never finishes loading
+  img.src = on ? (SHOT ? `api/live.jpg?raw=1&t=${Date.now()}` : `api/live.mjpg?raw=1&fps=30&t=${Date.now()}`) : BLANK;
 }
 function liveConnect() {
-  if (DEMO || LIVE.es || !window.EventSource) return;
+  if (DEMO || SHOT || LIVE.es || !window.EventSource) return;  // a still screenshot polls once instead
   const es = (LIVE.es = new EventSource("api/live/events"));
   es.onmessage = (e) => { LIVE.at = performance.now(); liveIngest(JSON.parse(e.data)); };
   // after a reconnect (service restart) the old MJPEG connection is dead too: reopen it
@@ -238,36 +239,68 @@ function liveIngest(lv) {
   LIVE.last = lv;
 }
 
-const chipFont = (k) => `600 ${Math.round(Math.max(10, Math.min(13, 12 * k)))}px -apple-system, BlinkMacSystemFont, Inter, "Segoe UI", sans-serif`;
-function chipSize(g, text, dot, k) {
-  g.font = chipFont(k);
-  return [g.measureText(text).width + 18 + (dot ? 12 : 0), Math.max(19, 22 * k)];
+/* Glass layer: person boxes and every tag are DOM elements over the picture, so the browser can
+ * give them real frosted glass (backdrop-filter); the canvas below draws zones, the door line
+ * and — in "no picture" mode — people as glowing dots. */
+const GL = { els: new Map(), widths: new Map(), mctx: null, ts: 0 };
+const SYS = '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", sans-serif';
+const CLOCK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8" cy="8" r="6.2"/><path d="M8 4.6V8l2.3 1.5"/></svg>';
+const ARROW_IN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg>';
+function glEl(key, cls) {
+  let el = GL.els.get(key);
+  if (!el) {
+    el = document.createElement("div");
+    el.className = el._cls = cls;
+    el.style.opacity = el._o = "0";
+    $("#live-layer").appendChild(el);
+    GL.els.set(key, el);
+  }
+  return el;
 }
-/** Place chips greedily in priority order; each chip tries its candidate positions and is
- *  skipped when every candidate would overlap a chip already placed (or leave the frame). */
-function placeChips(g, chips, k, W, H, reserved = []) {
-  const placed = [...reserved];
-  chips.sort((a, b) => b.prio - a.prio);
-  for (const c of chips) {
-    const [w, h] = chipSize(g, c.text, c.dot, k);
-    for (const [x, y] of c.at) {
-      const r = [x - w / 2 - 3, y - h / 2 - 3, x + w / 2 + 3, y + h / 2 + 3];
+function glSet(el, cls, html) {
+  if (el._cls !== cls) { el.className = el._cls = cls; }
+  if (html != null && el._html !== html) { el.innerHTML = el._html = html; }
+}
+function glPlace(el, x, y, op) {
+  const t = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`, o = op.toFixed(2);
+  if (el._t !== t) { el.style.transform = el._t = t; }
+  if (el._o !== o) { el.style.opacity = el._o = o; }
+}
+function textW(text, font) {
+  const key = `${font}|${text}`;
+  let w = GL.widths.get(key);
+  if (w == null) {
+    GL.mctx ||= document.createElement("canvas").getContext("2d");
+    GL.mctx.font = font;
+    w = GL.mctx.measureText(text).width;
+    if (GL.widths.size > 3000) GL.widths.clear();
+    GL.widths.set(key, w);
+  }
+  return w;
+}
+/** Greedy, collision-free tag placement in priority order. A tag keeps its previous spot while
+ *  that still fits (no jumping between candidates); tags that fit nowhere fade out. */
+function layoutTags(items, W, H, reserved) {
+  const placed = reserved.map((r) => r.slice());
+  items.sort((a, b) => b.prio - a.prio);
+  for (const it of items) {
+    const el = glEl(it.key, it.cls);
+    glSet(el, it.cls, it.html);
+    const order = el._ci != null && el._ci < it.at.length ? [el._ci, ...it.at.keys()] : [...it.at.keys()];
+    let pos = null;
+    for (const ci of order) {
+      const [x, y] = it.at[ci];
+      const r = [x - 3, y - 3, x + it.w + 3, y + it.h + 3];
       if (r[0] < 2 || r[2] > W - 2 || r[1] < 2 || r[3] > H - 2) continue;
       if (placed.some((q) => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1])) continue;
       placed.push(r);
-      g.globalAlpha = c.alpha ?? 1; chipAt(g, x, y, c.text, c.dot, k); g.globalAlpha = 1;
+      pos = [x, y];
+      el._ci = ci;
       break;
     }
+    if (pos) glPlace(el, pos[0], pos[1], it.op);
+    else if (el._o !== "0.00") { el.style.opacity = el._o = "0.00"; }  // no room: fade where it is
   }
-}
-function chipAt(g, x, y, text, dot, k) {
-  const [w, h] = chipSize(g, text, dot, k), padX = 9, dw = dot ? 12 : 0;
-  g.beginPath(); g.roundRect(x - w / 2, y - h / 2, w, h, h / 2);
-  g.fillStyle = "rgba(16,16,18,.78)"; g.fill();
-  g.strokeStyle = "rgba(255,255,255,.16)"; g.lineWidth = 1; g.stroke();
-  if (dot) { g.fillStyle = rgbaJ(dot, 1); g.beginPath(); g.arc(x - w / 2 + padX + 3.5, y, 3.5, 0, 7); g.fill(); }
-  g.fillStyle = "#f5f5f7"; g.textBaseline = "middle"; g.textAlign = "left";
-  g.fillText(text, x - w / 2 + padX + dw, y + 0.5);
 }
 
 function liveDraw(now) {
@@ -285,31 +318,51 @@ function liveDraw(now) {
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
   const k = W / 820, rawDt = (now - (LIVE.t || now)) / 1000, dt = Math.min(0.1, rawDt); LIVE.t = now;
   const lv = LIVE.last || {}, counts = lv.zone_counts || {};
-  const chips = [];
-  // keep the corners free for the HUD / legend that sit on top of the canvas
-  const hudOn = W >= 560;
-  const reserved = hudOn ? [[0, 0, Math.min(W, 470), 50], [Math.max(0, W - 420), H - 34, W, H]] : [[Math.max(0, W - 200), H - 30, W, H]];
+  const cam = LIVE.mode !== "plan";
+  const ts = W < 560 ? 0.86 : 1;  // tag scale (matches the CSS container query)
+  if (GL.ts !== ts) { GL.ts = ts; GL.widths.clear(); }
+  const small = W < 560;
+  // corners kept free for the HUD bar and the legend
+  const reserved = small ? [[Math.max(0, W - 200), H - 40, W, H]] : [[0, 0, Math.min(W, 380), 54], [Math.max(0, W - 360), H - 46, W, H]];
+  const items = [], keep = new Set();
+  const tagH = 24 * ts, ztagH = 22 * ts;
 
-  if (LIVE.mode === "plan") {          // "no image" mode: a quiet dotted floor
+  if (!cam) {          // "no picture" mode: a quiet dotted floor
     g.fillStyle = "rgba(255,255,255,.07)";
     const sp = 22 * k;
     for (let y = sp / 2; y < H; y += sp) for (let x = sp / 2; x < W; x += sp) { g.beginPath(); g.arc(x, y, 1.1, 0, 7); g.fill(); }
   }
 
-  // zones
+  // zones: a whisper of colour and a hairline edge; a zone with people in it lights up
+  g.lineJoin = "round";
   for (const z of S.info.zones || []) {
-    const col = ZC[z.type] || [200, 200, 200];
+    if (z.type === "ignore") continue;
+    const col = ZC[z.type] || [200, 200, 200], hex = ZONE_TYPES[z.type]?.color || "#c8c8c8";
     if (z.type === "entrance") {
       if (!z.line || z.line.length < 2) continue;
       const [[ax, ay], [bx, by]] = z.line.map(([x, y]) => [x * W, y * H]);
       const pu = Math.max(0, 1 - (now - LIVE.pulse) / 900);
       const lg = g.createLinearGradient(ax, ay, bx, by);
-      lg.addColorStop(0, rgbaJ(ROSE, .9)); lg.addColorStop(1, rgbaJ(GOLD, .9));
+      lg.addColorStop(0, rgbaJ(ROSE, .95)); lg.addColorStop(1, rgbaJ(GOLD, .95));
       g.lineCap = "round";
-      g.strokeStyle = rgbaJ(GOLD, .16 + .3 * pu); g.lineWidth = 14 * k + 10 * pu; g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
-      g.strokeStyle = lg; g.lineWidth = 3.2 * k; g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
-      if (pu > 0) { g.strokeStyle = rgbaJ(GOLD, .6 * pu); g.lineWidth = 2; g.beginPath(); g.arc((ax + bx) / 2, (ay + by) / 2, 10 + (1 - pu) * 60 * k, Math.PI, 2 * Math.PI); g.stroke(); }
-      chips.push({ text: z.name, dot: GOLD, prio: 50, at: [[(ax + bx) / 2, ay - 18 * k], [(ax + bx) / 2, ay + 18 * k]] });
+      g.strokeStyle = rgbaJ(GOLD, .12 + .3 * pu); g.lineWidth = 10 * k + 10 * pu; g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
+      g.strokeStyle = lg; g.lineWidth = Math.max(1.6, 2.4 * k); g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
+      // which way is in: two soft chevrons drifting from the line towards the inside
+      const mx = (ax + bx) / 2, my = (ay + by) / 2, len = Math.hypot(bx - ax, by - ay) || 1;
+      let nx = -(by - ay) / len, ny = (bx - ax) / len;
+      if (z.inside_point && (z.inside_point[0] * W - mx) * nx + (z.inside_point[1] * H - my) * ny < 0) { nx = -nx; ny = -ny; }
+      const tx = (bx - ax) / len, ty = (by - ay) / len, cs = 6 * Math.max(1, k);
+      for (let i = 0; i < 2; i++) {
+        const ph = ((now / 1400 + i * 0.5) % 1), d = 10 + ph * 26 * Math.max(1, k), a2 = Math.sin(ph * Math.PI) * .85;
+        const cx = mx + nx * d, cy = my + ny * d;
+        g.strokeStyle = `rgba(255,255,255,${a2})`; g.lineWidth = 1.8;
+        g.beginPath(); g.moveTo(cx - nx * cs + tx * cs, cy - ny * cs + ty * cs); g.lineTo(cx, cy); g.lineTo(cx - nx * cs - tx * cs, cy - ny * cs - ty * cs); g.stroke();
+      }
+      const name = esc(z.name), w = (9 + 11 + 6 + 9 + 1) * ts + textW(z.name, `500 ${11 * ts}px ${SYS}`);
+      const off = 20 * Math.max(1, k);
+      items.push({ key: `z:${z.id}`, cls: "ztag door", html: `${ARROW_IN}<span>${name}</span>`, w, h: ztagH, prio: 45, op: 1,
+                   at: [[mx + nx * off - w / 2, my + ny * off - ztagH / 2], [mx - nx * off - w / 2, my - ny * off - ztagH / 2]] });
+      keep.add(`z:${z.id}`);
       continue;
     }
     if (!z.polygon || z.polygon.length < 3) continue;
@@ -317,23 +370,26 @@ function liveDraw(now) {
     const n = counts[z.id] || 0;
     LIVE.za[z.id] = (LIVE.za[z.id] ?? 0) + ((n > 0 ? 1 : 0) - (LIVE.za[z.id] ?? 0)) * (1 - Math.exp(-dt * 4));
     const a = LIVE.za[z.id];
-    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
     const x0 = Math.min(...xs), y0 = Math.min(...ys), x1 = Math.max(...xs), y1 = Math.max(...ys);
     g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath();
     const fg = g.createLinearGradient(x0, y0, x1, y1);
-    fg.addColorStop(0, rgbaJ(col, .12 + .2 * a)); fg.addColorStop(1, rgbaJ(col, .02 + .05 * a));
+    fg.addColorStop(0, rgbaJ(col, .05 + .13 * a)); fg.addColorStop(1, rgbaJ(col, .01 + .05 * a));
     g.fillStyle = fg; g.fill();
-    g.setLineDash([5 * k, 6 * k]); g.strokeStyle = rgbaJ(col, .4 + .45 * a); g.lineWidth = 1.3 + a; g.stroke(); g.setLineDash([]);
-    // label: name + live count, inside the zone (top-left, else bottom-left, else centre)
-    const label = n ? `${z.name} · ${n}` : z.name;
-    const [lw, lh] = chipSize(g, label, col, k);
-    chips.push({ text: label, dot: col, prio: 40 + n, at: [[x0 + 8 + lw / 2, y0 + 8 + lh / 2], [x0 + 8 + lw / 2, y1 - 8 - lh / 2], [(x0 + x1) / 2, (y0 + y1) / 2]] });
+    g.strokeStyle = rgbaJ(col, .2 + .45 * a); g.lineWidth = 1; g.stroke();
+    if (a > 0.05) { g.strokeStyle = rgbaJ(col, .18 * a); g.lineWidth = 5; g.stroke(); }  // soft glow when occupied
+    const badge = n ? `<b style="background:${hex}">${n}</b>` : "";
+    const w = (9 + 7 + 6 + 9 + 1) * ts + textW(z.name, `500 ${11 * ts}px ${SYS}`) +
+              (n ? 6 * ts + Math.max(16 * ts, textW(String(n), `700 ${10.5 * ts}px ${SYS}`) + 8 * ts) : 0);
+    items.push({ key: `z:${z.id}`, cls: `ztag${n ? " on" : ""}`, html: `<i style="background:${hex}"></i>${esc(z.name)}${badge}`,
+                 w, h: ztagH, prio: 40 + n, op: n ? 1 : 0.78,
+                 at: [[x0 + 8, y0 + 8], [x0 + 8, y1 - 8 - ztagH], [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - ztagH / 2]] });
+    keep.add(`z:${z.id}`);
   }
 
-  // people: a thin box with bright corners, the foot point the zones use, and a label
-  // (#n = n-th customer of the day · time in the shop, or the wait while in the queue)
+  // people
   for (const [id, p] of LIVE.people) {
-    if (rawDt > 0.25 || SHOT) p.b = [...p.tb];  // after a stall jump, don't sweep across
+    if (rawDt > 0.25 || SHOT) { p.b = [...p.tb]; p.trail = []; }  // after a stall jump, don't sweep across
     const f = 1 - Math.exp(-dt * (DEMO ? 7 : 18));
     for (let i = 0; i < 4; i++) p.b[i] += (p.tb[i] - p.b[i]) * f;
     const fadeIn = SHOT ? 1 : Math.min(1, (now - p.born) / 300), fadeOut = p.gone ? 1 - (now - p.gone) / 500 : 1;
@@ -341,40 +397,57 @@ function liveDraw(now) {
     const al = fadeIn * fadeOut;
     const x1 = p.b[0] * W, y1 = p.b[1] * H, x2 = p.b[2] * W, y2 = p.b[3] * H, bw = x2 - x1, bh = y2 - y1;
     if (bw < 3 || bh < 3) continue;
-    const c1 = p.staff ? LILAC : ROSE, c2 = p.staff ? LILAC : GOLD;
-    const r = Math.min(7 * k, bw / 4, bh / 4);
-    g.beginPath();
-    g.moveTo(x1 + r, y1); g.arcTo(x2, y1, x2, y2, r); g.arcTo(x2, y2, x1, y2, r); g.arcTo(x1, y2, x1, y1, r); g.arcTo(x1, y1, x2, y1, r);
-    g.closePath();
-    g.fillStyle = rgbaJ(c1, .07 * al); g.fill();
-    g.strokeStyle = rgbaJ(c1, .45 * al); g.lineWidth = 1.1; g.stroke();
-    const L = Math.max(6, Math.min(16 * k, bw * .3, bh * .2));  // corner accents
-    const cg = g.createLinearGradient(x1, y1, x2, y2);
-    cg.addColorStop(0, rgbaJ(c1, al)); cg.addColorStop(1, rgbaJ(c2, al));
-    g.strokeStyle = cg; g.lineWidth = 2.6; g.lineCap = "round";
-    g.beginPath();
-    g.moveTo(x1, y1 + L); g.arcTo(x1, y1, x1 + L, y1, r); g.lineTo(x1 + L, y1);
-    g.moveTo(x2 - L, y1); g.arcTo(x2, y1, x2, y1 + L, r); g.lineTo(x2, y1 + L);
-    g.moveTo(x2, y2 - L); g.arcTo(x2, y2, x2 - L, y2, r); g.lineTo(x2 - L, y2);
-    g.moveTo(x1 + L, y2); g.arcTo(x1, y2, x1, y2 - L, r); g.lineTo(x1, y2 - L);
-    g.stroke(); g.lineCap = "butt";
-    g.fillStyle = rgbaJ(c2, .95 * al);  // foot point: where the person stands, what the zones count
-    g.beginPath(); g.arc((x1 + x2) / 2, y2, 2.5 + k, 0, 7); g.fill();
-    const el = (now - p.at) / 1000;
-    let txt;
-    if (p.staff) txt = "Personel";
-    else {
-      const parts = [];
-      if (p.n != null) parts.push(`#${p.n}`);
-      if (p.wait != null) parts.push(`⏱ ${mmss(p.wait + el)}`);
-      else if (p.inS != null) parts.push(mmss(p.inS + el));
-      txt = parts.join(" · ") || "Müşteri";
+    const fx = (x1 + x2) / 2, fy = y2, queue = !p.staff && p.wait != null;
+    p.trail ||= [];
+    if (now - (p.lt || 0) > 60) { p.trail.push([fx / W, fy / H]); if (p.trail.length > 18) p.trail.shift(); p.lt = now; }
+    if (cam) {
+      const box = glEl(`b:${id}`, "pbox");
+      glSet(box, `pbox${p.staff ? " staff" : queue ? " queue" : ""}`);
+      const bwS = `${bw.toFixed(1)}px`, bhS = `${bh.toFixed(1)}px`;
+      if (box._w !== bwS) { box.style.width = box._w = bwS; }
+      if (box._h !== bhS) { box.style.height = box._h = bhS; }
+      glPlace(box, x1, y1, al);
+      keep.add(`b:${id}`);
+    } else {           // a glowing dot with a short trail where the person stands
+      const c1 = p.staff ? LILAC : ROSE, c2 = p.staff ? LILAC : GOLD;
+      for (let i = 1; i < p.trail.length; i++) {
+        const [ax, ay] = p.trail[i - 1], [bx2, by2] = p.trail[i];
+        g.strokeStyle = rgbaJ(c1, al * .4 * (i / p.trail.length)); g.lineWidth = 2.6 * Math.max(1, k) * (i / p.trail.length) + .5;
+        g.beginPath(); g.moveTo(ax * W, ay * H); g.lineTo(bx2 * W, by2 * H); g.stroke();
+      }
+      const R = 24 * Math.max(.8, k), hg = g.createRadialGradient(fx, fy, 0, fx, fy, R);
+      hg.addColorStop(0, rgbaJ(c1, .42 * al)); hg.addColorStop(1, rgbaJ(c2, 0));
+      g.fillStyle = hg; g.fillRect(fx - R, fy - R, 2 * R, 2 * R);
+      const cg = g.createLinearGradient(fx - 7, fy - 7, fx + 7, fy + 7);
+      cg.addColorStop(0, rgbaJ(c1, al)); cg.addColorStop(1, rgbaJ(c2, al));
+      g.fillStyle = cg; g.beginPath(); g.arc(fx, fy, 6 * Math.max(.85, k) + 1.5, 0, 7); g.fill();
+      g.strokeStyle = `rgba(255,255,255,${.85 * al})`; g.lineWidth = 1.5; g.stroke();
     }
-    const [cw, ch] = chipSize(g, txt, c1, k);
-    chips.push({ text: txt, dot: c1, prio: p.wait != null ? 70 : p.staff ? 55 : 60, alpha: al,
-                 at: [[x1 + cw / 2, y1 - ch / 2 - 4], [x1 + cw / 2 + 4, y1 + ch / 2 + 4], [x2 - cw / 2, y2 + ch / 2 + 6]] });
+    // tag: number badge of the n-th customer today · time in the shop (or the wait in the queue)
+    const el = (now - p.at) / 1000;
+    let html, cls, w;
+    const fnum = `700 ${11 * ts}px ${SYS}`, ftxt = `${queue ? 600 : 500} ${12 * ts}px ${SYS}`;
+    if (p.staff) {
+      html = `<span class="num">P</span><span class="t">Personel</span>`; cls = "ptag staff";
+      w = (3 + 6 + 10 + 1) * ts + Math.max(18 * ts, textW("P", fnum) + 10 * ts) + textW("Personel", ftxt);
+    } else {
+      const t = queue ? mmss(p.wait + el) : p.inS != null ? mmss(p.inS + el) : "";
+      if (p.n != null) {
+        html = `<span class="num">${p.n}</span><span class="t">${queue ? CLOCK : ""}${t}</span>`; cls = `ptag${queue ? " queue" : ""}`;
+        w = (3 + 6 + 10 + 1) * ts + Math.max(18 * ts, textW(String(p.n), fnum) + 10 * ts) + textW(t, ftxt) + (queue ? 15 * ts : 0);
+      } else {
+        html = `<span class="t">${queue ? CLOCK : ""}${t}</span>`; cls = "ptag new";
+        w = (10 + 10 + 1) * ts + textW(t, ftxt) + (queue ? 15 * ts : 0);
+      }
+    }
+    const at = cam
+      ? [[x1, y1 - tagH - 6], [x1 + 5, y1 + 5], [x1, y2 + 6]]
+      : [[fx + 14, fy - tagH / 2], [fx - 14 - w, fy - tagH / 2], [fx - w / 2, fy - tagH - 16]];
+    items.push({ key: `t:${id}`, cls, html, w, h: tagH, at, prio: queue ? 70 : p.staff ? 55 : 60, op: al });
+    keep.add(`t:${id}`);
   }
-  placeChips(g, chips, k, W, H, reserved);
+  layoutTags(items, W, H, reserved);
+  for (const [key, el] of GL.els) if (!keep.has(key)) { el.remove(); GL.els.delete(key); }
   LIVE.raf = requestAnimationFrame(liveDraw);
 }
 

@@ -195,3 +195,63 @@ def test_ignore_zone_hides_detections(cfg):
     for f in scene.frames(20):
         live = eng.process(f)
     assert live.visible_customers == 0 and eng.tracker.tracks == []
+
+
+
+def _labels(eng, frames):
+    seen = {}
+    for f in frames:
+        for t in eng.process(f).tracks:
+            seen.setdefault(t["id"], t.get("n"))
+            if t.get("n") is not None:
+                seen[t["id"]] = t["n"]
+    return seen
+
+
+def test_numbers_are_given_at_the_door_not_to_broken_tracks(cfg):
+    scene = Scene(ts_at(DAY, 10))
+    scene.add([(0, 0.88, 0.50), (40, 0.88, 0.50)])  # already inside when we start: numbered
+    scene.add([(10, 0.18, 0.99), (11.5, 0.18, 0.84), (14, 0.30, 0.60), (40, 0.30, 0.60)])  # comes in: numbered
+    scene.add([(25, 0.60, 0.62), (40, 0.60, 0.62)], color=(200, 40, 40))  # pops up inside: a break, no number
+    eng = AnalyticsEngine(cfg, Store(":memory:"))
+    labels = _labels(eng, scene.frames(40))
+    assert sorted(n for n in labels.values() if n is not None) == [1, 2]
+    assert list(labels.values()).count(None) == 1
+
+
+def test_broken_track_takes_back_its_number_by_clothes(cfg):
+    # comes in (#1), shops at the vitamins, hidden 8 s behind a stand (longer than the tracker
+    # remembers anyone), seen again nearby: same colours → still #1 and the time keeps running
+    scene = Scene(ts_at(DAY, 10))
+    scene.add([(0, 0.18, 0.99), (1.5, 0.18, 0.84), (6, 0.86, 0.52), (14, 0.86, 0.52)], color=(40, 70, 170))
+    scene.add([(22, 0.87, 0.50), (35, 0.87, 0.50)], color=(40, 70, 170))
+    eng = AnalyticsEngine(cfg, Store(":memory:"))
+    for f in scene.frames(35):
+        live = eng.process(f)
+    assert [t["n"] for t in live.tracks] == [1]
+    assert live.tracks[0]["in_s"] > 30
+
+
+def test_someone_else_at_the_same_spot_is_not_relabelled(cfg):
+    scene = Scene(ts_at(DAY, 10))
+    scene.add([(0, 0.18, 0.99), (1.5, 0.18, 0.84), (6, 0.86, 0.52), (14, 0.86, 0.52)], color=(40, 70, 170))
+    scene.add([(22, 0.87, 0.50), (35, 0.87, 0.50)], color=(200, 40, 40))  # red coat: a different person
+    eng = AnalyticsEngine(cfg, Store(":memory:"))
+    for f in scene.frames(35):
+        live = eng.process(f)
+    assert [t["n"] for t in live.tracks] == [None]
+
+
+def test_a_looping_recording_starts_over_at_the_cut(cfg):
+    from dataclasses import replace
+
+    scene = Scene(ts_at(DAY, 10)).add([(0, 0.88, 0.50), (30, 0.88, 0.50)])
+    eng = AnalyticsEngine(cfg, Store(":memory:"))
+    frames = list(scene.frames(30))
+    for f in frames[:100]:
+        eng.process(f)
+    old = [t["id"] for t in eng.live.tracks]
+    for i, f in enumerate(frames[100:]):
+        live = eng.process(replace(f, cut=(i == 0)))
+    assert live.tracks and all(t["id"] not in old for t in live.tracks)
+    assert [t["n"] for t in live.tracks] == [2]  # seen right after the cut: already inside → numbered

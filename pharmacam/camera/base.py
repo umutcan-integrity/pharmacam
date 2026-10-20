@@ -27,6 +27,8 @@ class Frame:
     # False: the detector produced nothing new for this frame (the IMX500 runs its network on
     # every other frame at 30 fps) — the picture is still current, the detections are not
     fresh: bool = True
+    # True on the first frame of a new scene (a recording that loops): everyone seen so far is gone
+    cut: bool = False
 
 
 class FrameSource(Protocol):
