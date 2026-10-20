@@ -19,16 +19,16 @@ from ..analytics import heatmap as hm  # noqa: E402
 from ..analytics import queries as q  # noqa: E402
 from ..analytics.insights import day_insights, fmt_dur  # noqa: E402
 
-BRAND = "#0f8a5f"  # chrome only, never a data series
-BRAND_L = "#e3f3ec"
-INK = "#1d2b36"
-MUTED = "#6b7a86"
-GRID = "#e6ebee"
-S1 = "#2a78d6"  # series 1 (blue)
-S2 = "#eb6834"  # series 2 (orange)
-S1_BAND = "#cde2fb"
-NEUTRAL = "#b8c4cc"
-STATUS = {"good": "#0ca30c", "warn": "#fab219", "bad": "#d03b3b", "info": S1}
+BRAND = "#1d1d1f"  # chrome only, never a data series
+BRAND_L = "#ececf0"
+INK = "#1d1d1f"
+MUTED = "#6e6e73"
+GRID = "#ececf0"
+S1 = "#3a3a3c"  # series 1 (graphite)
+S2 = "#ff9f0a"  # series 2 (amber)
+S1_BAND = "#d2d2d7"
+NEUTRAL = "#c7c7cc"
+STATUS = {"good": "#248a3d", "warn": "#ff9f0a", "bad": "#d70015", "info": "#636366"}
 STATUS_ICON = {"good": "✓", "warn": "!", "bad": "✕", "info": "i"}
 A4 = (8.27, 11.69)
 AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
@@ -37,7 +37,7 @@ PAGES = 4
 plt.rcParams.update({
     "font.family": "DejaVu Sans",
     "font.size": 9,
-    "axes.edgecolor": "#c9d2d9",
+    "axes.edgecolor": "#d2d2d7",
     "axes.labelcolor": MUTED,
     "xtick.color": MUTED,
     "ytick.color": MUTED,
@@ -67,7 +67,7 @@ def _header(fig, title: str, subtitle: str, page: int) -> None:
                                       facecolor=BRAND, edgecolor="none"))
     fig.text(0.05, 0.968, "✚ PharmaCam", color="white", fontsize=15, fontweight="bold", va="center")
     fig.text(0.95, 0.975, title, color="white", fontsize=10, ha="right", va="center", fontweight="bold")
-    fig.text(0.95, 0.958, subtitle, color="#e6f5ee", fontsize=8.5, ha="right", va="center")
+    fig.text(0.95, 0.958, subtitle, color="#c7c7cc", fontsize=8.5, ha="right", va="center")
     fig.text(0.05, 0.018, f"PharmaCam v{__version__} · Görüntü kaydedilmez, kişiler anonim izlenir (KVKK uyumlu tasarım)",
              color=MUTED, fontsize=7)
     fig.text(0.95, 0.018, f"Sayfa {page}/{PAGES}", color=MUTED, fontsize=7, ha="right")
@@ -75,7 +75,7 @@ def _header(fig, title: str, subtitle: str, page: int) -> None:
 
 def _kpi(fig, x, y, w, h, label, value, sub=None, status=None):
     fig.patches.append(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.004,rounding_size=0.01",
-                                      transform=fig.transFigure, facecolor="#f6f8f8", edgecolor="#e1e7e5"))
+                                      transform=fig.transFigure, facecolor="#f5f5f7", edgecolor="#e5e5ea"))
     fig.text(x + 0.015, y + h - 0.011, label, fontsize=7.8, color=MUTED, va="top")
     fig.text(x + 0.015, y + 0.025 if sub else y + 0.016, value, fontsize=16, color=INK, fontweight="bold",
              va="bottom")
@@ -256,7 +256,7 @@ def generate_report(store, cfg, day: str, out_dir: Path, background: np.ndarray 
             t.set_fontsize(8)
             t.scale(1, 1.35)
             for (r, _), cl in t.get_celld().items():
-                cl.set_edgecolor("#e1e7e5")
+                cl.set_edgecolor("#e5e5ea")
                 if r == 0:
                     cl.set_facecolor(BRAND_L)
                     cl.set_text_props(fontweight="bold", color=INK)

@@ -62,13 +62,13 @@ def annotate(img: np.ndarray, live: dict, zones, blur: bool = True) -> np.ndarra
     h, w = out.shape[:2]
     for t in tracks:
         x1, y1, x2, y2 = (int(t["box"][0] * w), int(t["box"][1] * h), int(t["box"][2] * w), int(t["box"][3] * h))
-        color = (46, 204, 113) if t["staff"] else (0, 153, 255)
+        color = (29, 29, 31) if t["staff"] else (255, 159, 10)  # staff graphite, customer amber
         cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
         label = f"Personel #{t['id']}" if t["staff"] else f"#{t['id']} {int(t['seen_s'])}sn"
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.42, 1)
         cv2.rectangle(out, (x1, max(0, y1 - th - 6)), (x1 + tw + 6, y1), color, -1)
         cv2.putText(out, label, (x1 + 3, y1 - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (255, 255, 255), 1, cv2.LINE_AA)
     bar = f"Iceride: {live.get('occupancy', 0)}  Sira: {live.get('queue_length', 0)}  Personel: {live.get('staff_on_duty', 0)}"
-    cv2.rectangle(out, (0, 0), (w, 24), (20, 30, 40), -1)
+    cv2.rectangle(out, (0, 0), (w, 24), (22, 22, 24), -1)
     cv2.putText(out, bar, (8, 17), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
     return out
