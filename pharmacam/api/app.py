@@ -126,17 +126,18 @@ def create_app(rt) -> FastAPI:
             raise HTTPException(403, "Canlı görüntü kapalı")
 
         async def gen():
-            last_ts, period = None, 1.0 / fps
+            last_ts, sent_at, gap = None, 0.0, 0.9 / fps
             while not await request.is_disconnected():
-                t0 = time.monotonic()
                 ts = engine.last_frame_ts
-                if ts != last_ts:  # only frames the camera actually produced, no duplicates
-                    last_ts = ts
+                # check often (cheap) so no camera frame is missed, send at most `fps` per second,
+                # and only frames the camera actually produced — never duplicates
+                if ts != last_ts and time.monotonic() - sent_at >= gap:
+                    last_ts, sent_at = ts, time.monotonic()
                     data = await asyncio.to_thread(_live_jpeg, raw, 960 if raw else None, 72 if raw else 78)
                     if data:
                         yield (b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: "
                                + str(len(data)).encode() + b"\r\n\r\n" + data + b"\r\n")
-                await asyncio.sleep(max(0.01, period - (time.monotonic() - t0)))
+                await asyncio.sleep(0.008)
 
         return StreamingResponse(gen(), media_type="multipart/x-mixed-replace; boundary=frame",
                                  headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
