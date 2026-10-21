@@ -131,6 +131,25 @@ class SetupMonitor:
         else:
             add("people", "Kişi tespiti", "info", "henüz yeterli kişi geçmedi",
                 "Birkaç kişi görüş alanında dolaşınca tespit kalitesi ölçülecek.")
+        if cfg["demographics"]["enabled"] and cfg["camera"]["source"] != "simulator":
+            d = health.get("demographics")
+            if not d:
+                add("demographics", "Yaş/cinsiyet modeli", "warn", "çalışmıyor",
+                    "Model dosyaları eksik: 'python -m pharmacam models --fetch' çıktısındaki adımları izleyin.")
+            else:
+                title = {"mivolo": "MiVOLO v2 (yüz + beden)", "insightface": "InsightFace (yalnız yüz)"}.get(
+                    d["model"], d["model"])
+                ms = d.get("ms_per_person") or 0
+                done = d.get("analysed", 0)
+                add("demographics", "Yaş/cinsiyet modeli", "good" if d["model"] == "mivolo" else "warn",
+                    f"{title}" + (f" · kişi başı {ms / 1000:.1f} sn" if done else ""),
+                    "" if d["model"] == "mivolo" else "Daha isabetli MiVOLO modeli cihazda yok; yalnız yüzden tahmin "
+                                                      "uzak kamerada zayıftır.")
+                if done >= 30:
+                    seen = d.get("faces", 0) / max(1, done)
+                    add("faces", "Yüz görünürlüğü", "good" if seen >= 0.15 else "warn", f"analizlerin %{seen * 100:.0f}'i",
+                        "" if seen >= 0.15 else "Müşteriler kameraya çoğunlukla arkasını dönüyor: yaş tahmini zayıflar. "
+                                                "Kamerayı yüzleri görecek şekilde (ör. tezgâhın arkasına) takmayı düşünün.")
         zt = {z.type for z in cfg.zones}
         missing = [n for t, n in (("entrance", "giriş çizgisi"), ("queue", "sıra alanı"), ("service", "tezgâh"),
                                   ("shelf", "raf")) if t not in zt]

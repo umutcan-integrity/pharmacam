@@ -751,7 +751,9 @@ async function loadProfile() {
   const d = await api("/api/demographics", rangeOf("pf-range"));
   const pct = (v) => (v == null ? "—" : `%${v}`);
   $("#pf-tiles").innerHTML = [
-    tile("Kadın ziyaretçi", pct(d.female_pct), d.with_gender ? `${d.female} kadın · ${d.male} erkek` : "tahmin yok"),
+    // a share of a handful of visits says little: flag it rather than hide it
+    tile("Kadın ziyaretçi", pct(d.female_pct), d.with_gender
+      ? `${d.female} kadın · ${d.male} erkek${d.with_gender < 20 ? " · az veri, yorumlamayın" : ""}` : "tahmin yok"),
     tile("Medyan yaş", d.median_age ?? "—", "tahmini"),
     tile("En kalabalık yaş grubu", d.top_band ?? "—"),
     tile("Tahmin yapılan ziyaret", pct(d.coverage_gender), d.visits ? `cinsiyet ${d.with_gender}/${d.visits} · yaş %${d.coverage_age ?? 0}` : "ziyaret yok"),

@@ -396,6 +396,8 @@ footer a:hover { color: var(--ink); }
   <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></symbol>
   <symbol id="i-chip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></symbol>
+  <symbol id="i-profile" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="7.5" r="3"/><path d="M3 19c.5-3.2 2.7-5 5.5-5s5 1.8 5.5 5"/><path d="M15 20v-4M18 20v-7M21 20v-10"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
   <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
   <symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 6.2A9.8 9.8 0 0 1 12 6c5 0 8.5 4.5 9.5 6-.5.8-1.6 2.3-3.2 3.6M6.4 7.6C4.6 8.9 3.3 10.7 2.5 12c1 1.5 4.5 6 9.5 6 1.5 0 2.9-.4 4.1-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
 </svg>
@@ -514,7 +516,7 @@ footer a:hover { color: var(--ink); }
 <section id="ozellikler"><div class="wrap">
   <div class="reveal">
     <span class="eyebrow">Özellikler</span>
-    <h2>Tek kamera.<br><span class="grad">Dokuz güçlü gösterge.</span></h2>
+    <h2>Tek kamera.<br><span class="grad">Eczanenizin bütün resmi.</span></h2>
     <p class="sub">Tüm analiz cihazın içinde, gerçek zamanlı yapılır. Panel telefon, tablet ve bilgisayarda çalışır.</p>
   </div>
   <div class="bento">
@@ -576,6 +578,16 @@ footer a:hover { color: var(--ink); }
       <h3>Her akşam PDF rapor</h3>
       <p>Kapanışta otomatik hazırlanır: günün göstergeleri, grafikler, raf tablosu, ısı haritası ve yarın için tahmin.</p>
     </div>
+    <div class="card glass span-3 reveal">
+      <div class="ico"><svg><use href="#i-profile"/></svg></div>
+      <h3>Müşteri profili: yaş ve cinsiyet</h3>
+      <p>İsteğe bağlı: ziyaretçilerin tahmini yaş grupları ve cinsiyet dağılımı, saat saat. Yüz ve beden birlikte değerlendirilir; emin olmadığında "belirsiz" der. Görüntü ya da yüz şablonu saklanmaz.</p>
+    </div>
+    <div class="card glass span-3 reveal" style="--d:80ms">
+      <div class="ico"><svg><use href="#i-target"/></svg></div>
+      <h3>Kanıtlanmış doğruluk</h3>
+      <p>Kurulum asistanı ışığı, netliği ve açıyı canlı kontrol eder. Teslimde telefondan elle sayımla kişi kişi doğruluk testi yapılır; sonucu siz de görürsünüz.</p>
+    </div>
   </div>
 </div></section>
 
@@ -630,7 +642,8 @@ footer a:hover { color: var(--ink); }
     <p class="sub" style="margin-bottom:28px">Eczane hassas bir ortamdır. PharmaCam gizliliği sonradan eklenmiş bir özellik olarak değil, tasarımın temeli olarak ele alır.</p>
     <ul class="checks">
       <li class="glass"><svg><use href="#i-eye-off"/></svg><span><b>Görüntü diske yazılmaz</b> ve buluta gönderilmez. Tespit kameranın çipinde yapılır.</span></li>
-      <li class="glass"><svg><use href="#i-shield"/></svg><span><b>Yüz tanıma yok, biyometri yok.</b> Kişiler yalnızca geçici bir takip numarasıyla izlenir.</span></li>
+      <li class="glass"><svg><use href="#i-shield"/></svg><span><b>Yüz tanıma yok, kimse tanınmaz.</b> Kişiler yalnızca geçici bir takip numarasıyla izlenir.</span></li>
+      <li class="glass"><svg><use href="#i-profile"/></svg><span>Yaş/cinsiyet tahmini <b>isteğe bağlıdır, varsayılan kapalıdır</b>. Açıkken de görüntü ya da yüz şablonu saklanmaz; yalnızca toplu istatistik tutulur.</span></li>
       <li class="glass"><svg><use href="#i-check"/></svg><span>Canlı görüntü <b>yalnızca izlenir, kaydedilmez</b>; istenirse kişiler bulanıklaştırılır ya da canlı görüntü tamamen kapatılır.</span></li>
       <li class="glass"><svg><use href="#i-doc"/></svg><span>Kurulum kılavuzunda <b>örnek KVKK aydınlatma metni</b> ve kapı etiketi bulunur.</span></li>
     </ul>
@@ -655,7 +668,7 @@ footer a:hover { color: var(--ink); }
       <ul>
         <li><svg><use href="#i-check"/></svg>Cihaz kurulumu ve bölge ayarı</li>
         <li><svg><use href="#i-check"/></svg>Canlı panel ve günlük raporlar</li>
-        <li><svg><use href="#i-check"/></svg>Elle sayımla doğruluk karşılaştırması</li>
+        <li><svg><use href="#i-check"/></svg>Elle sayımla kişi kişi doğruluk testi</li>
         <li><svg><use href="#i-check"/></svg>Sonuç değerlendirme toplantısı</li>
       </ul>
       <a class="btn ghost" href="#iletisim">Pilot iste</a>
@@ -666,7 +679,7 @@ footer a:hover { color: var(--ink); }
       <ul>
         <li><svg><use href="#i-check"/></svg>Raspberry Pi 5 + AI Camera cihazı</li>
         <li><svg><use href="#i-check"/></svg>Tavan montajı ve kablolama</li>
-        <li><svg><use href="#i-check"/></svg>9 gösterge, tahmin, PDF rapor</li>
+        <li><svg><use href="#i-check"/></svg>Tüm göstergeler, tahmin, PDF rapor</li>
         <li><svg><use href="#i-check"/></svg>Uzaktan erişim ve güncellemeler</li>
         <li><svg><use href="#i-check"/></svg>Telefon ve WhatsApp desteği</li>
       </ul>
@@ -698,6 +711,7 @@ footer a:hover { color: var(--ink); }
     <details class="glass reveal"><summary>İnternet kesilirse ne olur?</summary><p>Cihaz internetsiz de tam çalışır, tüm veriyi kendi içinde saklar. Merkez panele gönderilecek veriler kuyrukta bekler ve bağlantı gelince eksiksiz aktarılır.</p></details>
     <details class="glass reveal"><summary>Personeli müşteriden nasıl ayırıyor?</summary><p>Beyaz önlük oranı ve tezgâh arkasında geçen süre birlikte değerlendirilir. Personel, müşteri istatistiklerine katılmaz; görevdeki personel sayısı ayrıca gösterilir.</p></details>
     <details class="glass reveal"><summary>Birden fazla eczanem var, hepsini tek yerden görebilir miyim?</summary><p>Evet. Zincir paketindeki merkez panel tüm şubelerin anlık doluluğunu, sırasını ve günlük müşteri sayılarını tek ekranda gösterir.</p></details>
+    <details class="glass reveal"><summary>Yaş ve cinsiyet tahmini ne kadar doğru?</summary><p>Yüzü kameraya dönük ve yakın olan kişide cinsiyet tahmini 10 kişiden 9'undan fazlasında doğrudur; yalnızca arkadan görülen kişide daha zayıftır. Bu yüzden sistem her ziyaret için bütün bakışları birlikte değerlendirir ve emin olmadığında "belirsiz" der. Yaş, yaş grubu düzeyinde yorumlanmalıdır. Özellik isteğe bağlıdır ve tek bir kişi hakkında karar vermek için değil, toplu istatistik için tasarlanmıştır.</p></details>
     <details class="glass reveal"><summary>Önce denemek istiyorum.</summary><p>Canlı demoyu hemen gezebilirsiniz. Kendi eczanenizde görmek isterseniz 2 haftalık pilot kurulum için bize ulaşın.</p></details>
   </div>
 </div></section>

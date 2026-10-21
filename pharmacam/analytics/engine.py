@@ -59,9 +59,9 @@ STARTUP_GRACE_S = 8.0  # people seen this soon after start (or a scene cut) were
 REID_WINDOW_S = 30.0  # a new track may take back the label of someone lost at most this long ago
 REID_MAX_DIST = 0.30  # clothing colours at least this alike (appearance.distance)
 REID_MARGIN = 0.06  # ... and clearly closer than the next candidate
-DEMO_MIN_GENDER_W = 1.5  # evidence needed for a gender estimate (a clear face look weighs ~1)
-DEMO_MIN_AGE_W = 1.0  # ... and for an age estimate (faces only)
-DEMO_GENDER_MARGIN = 0.15  # mean probability must be this far from 50 %
+DEMO_MIN_GENDER_W = 0.6  # evidence needed for a gender estimate (one clear look at the face weighs 0.6-1)
+DEMO_MIN_AGE_W = 0.6  # ... and for an age estimate (mostly from faces)
+DEMO_GENDER_MARGIN = 0.2  # the visit's mean probability must be this far from 50 % (else: unknown)
 
 
 @dataclass
@@ -199,6 +199,7 @@ class AnalyticsEngine:
                     self._finish_track(t, ts)
                 self._gone.clear()
                 self._start_ts = ts
+                self._counter = 0  # the door count starts again from who is visible
             if self._start_ts is None:
                 self._start_ts = ts
             active, ended = self.tracker.update(dets, ts)
@@ -241,7 +242,8 @@ class AnalyticsEngine:
                 self._demo_vote(t, t.attrs)
             elif self.demo and frame.image is not None and \
                     ts - m.get("demo_ts", 0.0) >= float(self.cfg["demographics"]["interval_s"]):
-                if self.demo.submit(t.id, frame.image, t.box, ts):
+                others = [b for b in self._active_boxes if b is not t.box]
+                if self.demo.submit(t.id, frame.image, t.box, ts, others):
                     m["demo_ts"] = ts
         if not is_staff and "n" not in m:
             if not m.get("reid") and m.get("sig_n", 0) >= 2:
@@ -376,9 +378,10 @@ class AnalyticsEngine:
         if obs.get("female") is not None:
             d["f"] += w * float(obs["female"])
             d["fw"] += w
-        if obs.get("age") is not None:
-            d["a"] += w * float(obs["age"])
-            d["aw"] += w
+        aw = float(obs.get("aw", w))  # age has its own weight: a figure says little about age
+        if obs.get("age") is not None and aw > 0:
+            d["a"] += aw * float(obs["age"])
+            d["aw"] += aw
         d["n"] += 1
 
     @staticmethod
@@ -585,6 +588,8 @@ class AnalyticsEngine:
         for c in mine:
             self._emit_crossing(*c)
         self.setup.track_ended(t)
+        if self.demo:
+            self.demo.drop(t.id)
         if t.meta.get("phantom"):
             return
         if self.cfg.zones_of("entrance"):

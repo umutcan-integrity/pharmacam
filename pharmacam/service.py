@@ -168,7 +168,15 @@ class Runtime:
             "last_frame_age_s": round(time.time() - self.last_frame_at, 1) if self.last_frame_at else None,
             "sync": self.sync_status,
             "system": system_stats(),
+            "demographics": self.demographics_info(),
         }
+
+    def demographics_info(self) -> dict | None:
+        demo = self.engine.demo
+        if demo is None:
+            return None
+        st = dict(demo.stats)
+        return {"model": demo.backend.name, "ms_per_person": round(st.pop("ms")), **st}
 
     def model_info(self) -> dict | None:
         if self.cfg["camera"]["source"] != "imx500":

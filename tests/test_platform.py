@@ -4,7 +4,7 @@ import json
 from datetime import date, timedelta
 
 import pytest
-from conftest import Scene, ts_at
+from conftest import Scene, sim_config, ts_at
 from fastapi.testclient import TestClient
 
 from pharmacam import timeutil
@@ -241,3 +241,19 @@ def test_audit_matching_one_to_one():
     assert r["in"] == {"manual": 3, "system": 3, "matched": 2, "missed": 1, "extra": 1,
                        "count_accuracy": 100.0, "event_accuracy": 66.7}
     assert r["out"]["matched"] == 1 and r["overall"] == 75.0
+
+
+def test_setup_checks_report_the_age_gender_model(tmp_path):
+    from pharmacam.analytics.setup import SetupMonitor
+
+    cfg = sim_config(tmp_path, camera={"source": "imx500"}, demographics={"enabled": True})
+    mon = SetupMonitor()
+    rows = {c["key"]: c for c in mon.checks(cfg, {"camera_ok": True, "fps": 15, "demographics": None})}
+    assert rows["demographics"]["status"] == "warn"  # switched on but no model on the device
+    health = {"camera_ok": True, "fps": 15, "demographics": {"model": "mivolo", "ms_per_person": 1260,
+                                                             "analysed": 40, "faces": 2}}
+    rows = {c["key"]: c for c in mon.checks(cfg, health)}
+    assert rows["demographics"]["status"] == "good" and "1.3 sn" in rows["demographics"]["value"]
+    assert rows["faces"]["status"] == "warn"  # 2 faces in 40 looks: people show the camera their backs
+    cfg = sim_config(tmp_path, camera={"source": "imx500"}, demographics={"enabled": False})
+    assert "demographics" not in {c["key"] for c in mon.checks(cfg, health)}

@@ -1,3 +1,4 @@
 # Raspberry Pi (picamera2, opencv, numpy, pyyaml, matplotlib come from apt — see deploy/install.sh)
 fastapi>=0.110
 uvicorn>=0.29
+onnxruntime>=1.17  # age/gender estimation (optional feature, CPU)

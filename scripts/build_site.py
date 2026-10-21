@@ -188,6 +188,73 @@ def record_live(cfg: Config, today: str) -> None:
             break
     (live_dir / "seq.json").write_text(json.dumps(seq, ensure_ascii=False, separators=(",", ":")))
 
+    # the installation assistant as it would look after these minutes of watching
+    from pharmacam.analytics.setup import SetupMonitor
+
+    health = {"camera_ok": True, "fps": 15.0, "model": {"title": "YOLO11n 640×640", "fallback": False}}
+    write = lambda path, params, obj: (DATA / (api_key(path, params) + ".json")).write_text(  # noqa: E731
+        json.dumps(obj, ensure_ascii=False))
+    write("/api/setup/checks", None, {"checks": engine.setup.checks(cfg, health), "light": engine.setup.light,
+                                      "people_seen": engine.setup.people_seen})
+    entrance = next((z.to_dict() for z in cfg.zones if z.type == "entrance"), None)
+    for mount in ("above_door", "facing_door", "corner"):
+        write("/api/setup/door", {"mount": mount}, {"preset": SetupMonitor.preset_door(mount),
+                                                    "learnt": engine.setup.learnt_door(), "current": entrance})
+    write("/api/audit", None, {"active": False})
+    write("/api/audits", None, [simulated_audit(today)])
+
+
+def simulated_audit(today: str, minutes: int = 20, seed: int = 11) -> dict:
+    """The count audit of the installation assistant, done on the simulator: the "taps" are the true
+    door crossings, the system is the real engine on detections with realistic camera noise (missed
+    and false boxes, jitter, occlusion — see pharmacam/tools/bench_trackers.py)."""
+    import random
+
+    from pharmacam.analytics.engine import AnalyticsEngine
+    from pharmacam.analytics.setup import audit_result
+    from pharmacam.camera.base import Frame
+    from pharmacam.camera.simulator import PharmacySim
+    from pharmacam.storage.db import Store
+    from pharmacam.tools.bench_trackers import NOISE, Detector
+    from pharmacam.vision.geometry import projection_t, signed_side
+
+    cfg = Config.load(ROOT / "config" / "pharmacam.simulator.yaml")
+    door = cfg.zones_of("entrance")[0]
+    a, b = door.line
+    sign = 1.0 if signed_side(door.inside_point, a, b) >= 0 else -1.0
+    fps, dt = 15.0, 1.0 / 15.0
+    sim = PharmacySim(seed=seed, arrival_scale=NOISE["realistic"]["arrival"], n_staff=2, hour_override=17)
+    det = Detector("realistic", fps, random.Random(seed * 7919 + 13))
+    store = Store(":memory:")
+    eng = AnalyticsEngine(cfg, store)
+    y, m, d = map(int, today.split("-"))
+    t0 = datetime(y, m, d, 17, 10, tzinfo=timeutil.tz()).timestamp()
+    for k in range(int(120 * fps)):  # people already inside when the test starts
+        sim.step(t0 - 120 + k * dt, dt)
+    taps, side, ts = [], {}, t0
+    for _ in range(int(minutes * 60 * fps)):
+        sim.step(ts, dt)
+        agents = list(sim.agents)
+        eng.process(Frame(ts=ts, image=None, detections=det(agents)))
+        for ag in agents:
+            if ag.staff:
+                continue
+            dd, along = signed_side(ag.pos, a, b) * sign, projection_t(ag.pos, a, b)
+            s = 1 if dd > 0.004 else -1 if dd < -0.004 else 0
+            prev = side.get(ag.id)
+            if s and prev and s != prev and -0.25 <= along <= 1.25:
+                taps.append({"kind": "in" if s > 0 else "out", "ts": ts})
+            if s:
+                side[ag.id] = s
+        ts += dt
+    eng.flush()
+    events = [r for r in store.query("SELECT ts, type, payload FROM events WHERE type IN ('entry','exit')")
+              if '"staff": true' not in (r["payload"] or "")]
+    res = audit_result(taps, events)
+    print(f"simüle sayım testi: {len(taps)} gerçek geçiş, doğruluk %{res['overall']}")
+    return {"id": 1, "started_at": t0, "ended_at": ts, "day": today, "result": res,
+            "note": "simülasyon, gerçekçi kamera gürültüsü"}
+
 
 if __name__ == "__main__":
     main()

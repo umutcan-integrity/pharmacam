@@ -66,6 +66,17 @@ def cmd_models(args, cfg: Config) -> int:
             print(f"HATA: {e}")
             return 1
         print(f"OK: {m.title} hazır ({m.path})")
+    print("\nYaş/cinsiyet tahmini " + ("(açık)" if cfg["demographics"]["enabled"] else "(kapalı)") + ":")
+    files = models.ensure_demographics(cfg) if args.fetch else \
+        [(f, models.model_dir(cfg) / f.file, "ok" if (models.model_dir(cfg) / f.file).exists() else "missing")
+         for f in models.DEMOGRAPHICS_FILES]
+    for spec, path, state in files:
+        mark = "✓" if state == "ok" else "✗"
+        print(f"  {mark} {spec.title:<44} {spec.licence}")
+        if state == "missing" and spec.how:
+            print(f"      eksik: {spec.how}")
+        elif state not in ("ok", "missing"):
+            print(f"      indirilemedi: {state}")
     return 0
 
 

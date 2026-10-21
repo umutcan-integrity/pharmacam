@@ -98,6 +98,19 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def _download(url: str, path: Path, sha256: str | None) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".part")
+    log.info("Model indiriliyor: %s ← %s", path.name, url)
+    with urllib.request.urlopen(url, timeout=120) as r, open(tmp, "wb") as f:
+        while chunk := r.read(1 << 20):
+            f.write(chunk)
+    if sha256 and _sha256(tmp) != sha256:
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError(f"İndirilen model doğrulanamadı (sha256): {url}")
+    tmp.replace(path)
+
+
 def ensure(cfg) -> ResolvedModel:
     """Download the configured preset if it is not on the device yet (checksum verified)."""
     m = resolve(cfg)
@@ -108,17 +121,45 @@ def ensure(cfg) -> ResolvedModel:
         return m
     if not spec or not spec.url:
         raise RuntimeError(f"Model dosyası yok: {m.path}")
-    m.path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = m.path.with_suffix(".part")
-    log.info("Model indiriliyor: %s ← %s", m.path.name, spec.url)
-    with urllib.request.urlopen(spec.url, timeout=120) as r, open(tmp, "wb") as f:
-        while chunk := r.read(1 << 20):
-            f.write(chunk)
-    if spec.sha256 and _sha256(tmp) != spec.sha256:
-        tmp.unlink(missing_ok=True)
-        raise RuntimeError(f"İndirilen model doğrulanamadı (sha256): {spec.url}")
-    tmp.replace(m.path)
+    _download(spec.url, m.path, spec.sha256)
     return m
+
+
+@dataclass(frozen=True)
+class FileSpec:
+    """A CPU model used next to the camera (age / gender estimation)."""
+
+    file: str
+    title: str
+    licence: str
+    url: str | None = None  # None: made on a development machine and copied to the device
+    sha256: str | None = None
+    how: str = ""
+
+
+DEMOGRAPHICS_FILES = (
+    FileSpec("face_detection_yunet_2023mar.onnx", "YuNet yüz bulucu (OpenCV Zoo)", "MIT",
+             url="https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/"
+                 "face_detection_yunet_2023mar.onnx",
+             sha256="8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"),
+    FileSpec("mivolo_v2_384_int8.onnx", "MiVOLO v2 yaş/cinsiyet, yüz + beden (int8)", "Apache-2.0 (model kartı)",
+             how="geliştirme bilgisayarında `python -m pharmacam.tools.export_mivolo models/mivolo_v2_384.onnx "
+                 "--int8`, sonra cihazın models/ klasörüne kopyalayın"),
+)
+
+
+def ensure_demographics(cfg) -> list[tuple[FileSpec, Path, str]]:
+    """Fetch the downloadable age/gender files; (spec, path, state) for each — state: ok | missing | error text."""
+    out = []
+    for spec in DEMOGRAPHICS_FILES:
+        path = model_dir(cfg) / spec.file
+        try:
+            if not path.exists() and spec.url:
+                _download(spec.url, path, spec.sha256)
+            out.append((spec, path, "ok" if path.exists() else "missing"))
+        except Exception as e:  # offline: counting works without it
+            out.append((spec, path, str(e)))
+    return out
 
 
 def fallback() -> ResolvedModel:

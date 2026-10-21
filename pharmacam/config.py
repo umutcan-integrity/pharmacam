@@ -69,9 +69,10 @@ DEFAULTS: dict[str, Any] = {
         # only per-visit estimates and daily totals are kept. Mention it in the privacy notice.
         "enabled": False,
         "show_live": False,  # show the estimate on the live view's person tag
-        "model": "auto",  # see vision/demographics.py
+        "model": "auto",  # mivolo (face + figure, most accurate) | insightface (face only) — see vision/demographics.py
         "max_rate": 4.0,  # analyses per second at most (CPU budget)
-        "interval_s": 0.7,  # look at the same person at most this often
+        "interval_s": 0.7,  # hand over a new picture of the same person at most this often
+        "threads": 2,  # CPU cores the model may use (a Pi 5 has 4; the camera loop needs the rest)
     },
     "storage": {
         "path": "data/pharmacam.db",

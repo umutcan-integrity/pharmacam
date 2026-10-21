@@ -174,3 +174,79 @@ def test_clothing_signature_tells_people_apart():
     assert appearance.distance(blue1, blue2) < 0.15
     assert appearance.distance(blue1, red) > 0.6
     assert appearance.signature(img, (0.1, 0.1, 0.11, 0.12)) is None  # too small to judge
+
+
+class _FakeBackend:
+    """Stands in for a model: a face whenever the picture's top-left pixel is bright."""
+
+    name = "fake"
+    min_person_px = 20
+
+    def __init__(self):
+        self.seen = []
+
+    def find_face(self, s):
+        return (0, 0, 40, 40, 0.9, 1.0) if s.crop[0, 0, 0] > 128 else None
+
+    def estimate(self, s, face):
+        self.seen.append(s.track_id)
+        return {"female": 1.0, "age": 30.0, "w": 1.0, "src": "face" if face else "back"}
+
+
+def _wait_for(cond, timeout=3.0):
+    import time
+
+    end = time.monotonic() + timeout
+    while time.monotonic() < end and not cond():
+        time.sleep(0.01)
+    return cond()
+
+
+def test_demographics_takes_people_in_turns_and_keeps_only_their_latest_picture():
+    from pharmacam.vision.demographics import DemographicsAnalyzer
+
+    an = DemographicsAnalyzer(_FakeBackend(), max_rate=1000)
+    an.close()  # drive the queue by hand
+    an.thread.join(timeout=2)
+    an._looks[1] = 5  # person 1 has had many turns already
+    img = np.zeros((200, 200, 3), np.uint8)
+    for tid in (1, 2, 2, 3):
+        an.submit(tid, img, (0.1, 0.1, 0.5, 0.9), 0.0)
+    order = [an._next().track_id for _ in range(3)]
+    assert sorted(order[:2]) == [2, 3] and order[2] == 1  # person 2's two pictures: one turn
+    assert an._next() is None
+
+
+def test_demographics_stops_looking_at_someones_back_until_they_turn():
+    from pharmacam.vision import demographics as D
+
+    be = _FakeBackend()
+    an = D.DemographicsAnalyzer(be, max_rate=1000)
+    back = np.zeros((200, 200, 3), np.uint8)
+    for _ in range(D.BACK_LOOKS + 2):
+        an.submit(7, back, (0.1, 0.1, 0.5, 0.9), 0.0)
+        _wait_for(lambda: not an._pending)
+    assert be.seen.count(7) == D.BACK_LOOKS
+    front = back.copy()
+    front[0, 0] = 255
+    an.submit(7, front, (0.0, 0.0, 0.5, 0.9), 0.0)
+    assert _wait_for(lambda: be.seen.count(7) == D.BACK_LOOKS + 1)
+    an.drop(7)
+    assert 7 not in an._backs
+    an.close()
+
+
+def test_demographics_crop_maps_boxes_into_the_picture():
+    from pharmacam.vision.demographics import DemographicsAnalyzer
+
+    be = _FakeBackend()
+    an = DemographicsAnalyzer(be, max_rate=1000)
+    an.close()  # keep the sample in the queue
+    an.thread.join(timeout=2)
+    img = np.zeros((100, 200, 3), np.uint8)
+    assert an.submit(4, img, (0.25, 0.2, 0.5, 0.8), 0.0, others=[(0.4, 0.3, 0.9, 0.9), (0.9, 0.0, 1.0, 0.1)])
+    s = an._pending[4]
+    bx1, by1, bx2, by2 = s.box
+    assert (bx2 - bx1, by2 - by1) == (50, 60)
+    assert len(s.others) == 1  # the far box does not touch the crop
+    assert not an.submit(5, img, (0.1, 0.1, 0.2, 0.15), 0.0)  # 5 px tall: too small

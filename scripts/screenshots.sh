@@ -23,3 +23,5 @@ shot panel-ziyaret "day=$DAY#visits" 760
 shot panel-bolgeler "#zones" 760
 shot panel-ayarlar "#settings" 640
 shot panel-raporlar "#reports" 640
+shot panel-profil "days=30#profile" 1100
+shot panel-kurulum "#setup" 1250
