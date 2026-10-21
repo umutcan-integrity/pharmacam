@@ -221,6 +221,12 @@ class Store:
                    "ON CONFLICT(day) DO UPDATE SET path=excluded.path, created_at=excluded.created_at",
                    (day, path, time.time()))
 
+    def clear_day(self, day: str) -> None:
+        """Forget one day's counts and visits (a replayed recording starts its day over)."""
+        with self.lock:
+            for t in ("visits", "events", "minutes", "zone_hours", "heatmaps"):
+                self.conn.execute(f"DELETE FROM {t} WHERE day = ?", (day,))
+
     def prune(self, retention_days: int) -> None:
         cutoff = timeutil.shift_day(timeutil.today(), -retention_days)
         with self.lock:

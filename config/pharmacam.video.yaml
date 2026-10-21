@@ -12,6 +12,7 @@ camera:
 video:
   path: data/videos/store_corner.mp4
   loop: true
+  new_day_each_loop: true   # aynı kişiler her turda yeniden geçer: numaralar ve bugünkü sayaçlar her turda baştan
   fps: 15
   model: data/yolo11n.pt
   conf: 0.3

@@ -12,6 +12,7 @@ the model the camera uses (needs `pip install ultralytics`; the Mac's GPU is use
       fps: 15            # analysis rate (the clip is subsampled if it is faster)
       model: yolo11n.pt
       conf: 0.3          # keep low-confidence boxes for the tracker, like the camera does
+      new_day_each_loop: false   # true: every loop is the same day again (numbers and totals start over)
 """
 from __future__ import annotations
 
@@ -35,6 +36,7 @@ class VideoFileSource:
         if not self.path.exists():
             raise RuntimeError(f"Video bulunamadı: {self.path}")
         self.loop = bool(v.get("loop", True))
+        self.new_day = bool(v.get("new_day_each_loop", False))
         self.fps = float(v.get("fps", 15))
         self.realtime = bool(v.get("realtime", True))
         self.conf = float(v.get("conf", 0.3))
@@ -98,7 +100,8 @@ class VideoFileSource:
                     if delay > 0:
                         time.sleep(delay)
                 rgb = np.ascontiguousarray(bgr[..., ::-1])
-                yield Frame(ts=time.time(), image=rgb, detections=self._detect(rgb), cut=cut)
+                yield Frame(ts=time.time(), image=rgb, detections=self._detect(rgb), cut=cut,
+                            new_day=cut and self.new_day)
                 cut = False
         finally:
             cap.release()

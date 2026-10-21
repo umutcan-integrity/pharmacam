@@ -255,3 +255,41 @@ def test_a_looping_recording_starts_over_at_the_cut(cfg):
         live = eng.process(replace(f, cut=(i == 0)))
     assert live.tracks and all(t["id"] not in old for t in live.tracks)
     assert [t["n"] for t in live.tracks] == [2]  # seen right after the cut: already inside → numbered
+
+
+def test_a_replayed_recording_can_start_its_day_over(cfg):
+    from dataclasses import replace
+
+    store = Store(":memory:")
+    eng = AnalyticsEngine(cfg, store)
+    for f in Scene(ts_at(DAY, 10)).add(customer_path()).frames(52):
+        eng.process(f)
+    assert eng.live.entries_today == 1
+    frames = list(Scene(ts_at(DAY, 10, 1)).add(customer_path()).frames(52))  # the clip again
+    numbers = set()
+    for i, f in enumerate(frames):
+        live = eng.process(replace(f, cut=(i == 0), new_day=(i == 0)))
+        numbers |= {t["n"] for t in live.tracks if t["n"] is not None}
+    eng.flush()
+    assert numbers == {1}  # the same person is #1 again, not #2
+    assert live.entries_today == 1 and live.exits_today == 1
+    s = q.summary(store, DAY)
+    assert s["entries"] == 1 and s["exits"] == 1 and len(q.visits(store, DAY)) == 1
+
+
+def test_a_remembered_poster_is_forgotten_after_a_week_of_scene_time(cfg):
+    from conftest import person_box
+
+    from pharmacam import timeutil
+
+    def visible(days_later):
+        store = Store(":memory:")
+        store.set_meta("static_objects", json.dumps([{"box": person_box(0.89, 0.47), "seen": ts_at(DAY, 10)}]))
+        eng = AnalyticsEngine(cfg, store)
+        day = timeutil.shift_day(DAY, days_later)
+        for f in Scene(ts_at(day, 10)).add([(0, 0.89, 0.47), (5, 0.89, 0.47)]).frames(5):
+            live = eng.process(f)
+        return live.visible_customers
+
+    assert visible(1) == 0  # the poster's spot, still remembered the next day
+    assert visible(8) == 1  # a week later it is forgotten: whoever stands there counts

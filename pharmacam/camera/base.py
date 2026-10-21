@@ -32,6 +32,8 @@ class Frame:
     fresh: bool = True
     # True on the first frame of a new scene (a recording that loops): everyone seen so far is gone
     cut: bool = False
+    # with `cut`: the scene replays the same people, so today's counts start over (video demo)
+    new_day: bool = False
 
 
 class FrameSource(Protocol):

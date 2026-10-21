@@ -200,6 +200,8 @@ class AnalyticsEngine:
                 self._gone.clear()
                 self._start_ts = ts
                 self._counter = 0  # the door count starts again from who is visible
+                if frame.new_day:
+                    self._restart_day(ts)
             if self._start_ts is None:
                 self._start_ts = ts
             active, ended = self.tracker.update(dets, ts)
@@ -281,6 +283,8 @@ class AnalyticsEngine:
         m = t.meta
         m["born"] = ts
         m["uid"] = f"{int(t.first_ts)}-{t.id}"
+        # forget statics not seen for a week — by the frames' clock, which is also right for recordings
+        self._static = [s for s in self._static if ts - s.get("seen", ts) < STATIC_MEMORY_S]
         for s in self._static:  # a remembered poster at the same spot
             if iou(t.box, s["box"]) >= 0.5:
                 m["phantom"] = True
@@ -439,11 +443,9 @@ class AnalyticsEngine:
         if not self.store:
             return []
         try:
-            items = json.loads(self.store.get_meta("static_objects", "[]") or "[]")
+            return json.loads(self.store.get_meta("static_objects", "[]") or "[]")
         except ValueError:
-            return []
-        now = time.time()
-        return [s for s in items if now - s.get("seen", 0) < STATIC_MEMORY_S]
+            return []  # (old entries are forgotten by the frames' own clock, see _on_new_track)
 
     def _save_static(self) -> None:
         if self.store:
@@ -731,6 +733,17 @@ class AnalyticsEngine:
         self.live.entries_today = 0
         self.live.exits_today = 0
         self.live.staff_entries_today = 0
+
+    def _restart_day(self, ts: float) -> None:
+        """A recording that replays the same people: today starts over instead of adding them up
+        again on every loop (numbers #1, #2... and the day's totals stay those of one real day)."""
+        self._pending_crossings = []
+        self._minute = None
+        self._zone_hour = defaultdict(ZoneHourStats)
+        self._heat_hour = np.zeros((self.grid_h, self.grid_w), dtype=np.float32)
+        self._roll_day(ts)
+        if self.store:
+            self.store.clear_day(self._day)
 
     def _flush_minute(self) -> None:
         a = self._minute
