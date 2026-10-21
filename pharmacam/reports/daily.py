@@ -360,6 +360,7 @@ def _profile_page(pdf, d: dict, sub: str, pages: int, o: int, c: int) -> None:
            label="Cinsiyet belirsiz")
     ax.set_xticks(x, labels)
     ax.tick_params(length=0)
+    ax.set_ylim(0, max(1.0, float((fem + mal + unk).max())) * 1.22)  # room for the legend above the bars
     ax.legend(frameon=False, fontsize=8, loc="upper right", ncol=3)
     ax.set_title("Yaş gruplarına göre ziyaretçi (tahmini)")
 
@@ -371,7 +372,8 @@ def _profile_page(pdf, d: dict, sub: str, pages: int, o: int, c: int) -> None:
     ax.bar(hs, f, color=S2, width=0.72, edgecolor="white", linewidth=1.2, label="Kadın")
     ax.bar(hs, m, bottom=f, color=S1, width=0.72, edgecolor="white", linewidth=1.2, label="Erkek")
     _hour_axis(ax, hs)
-    ax.legend(frameon=False, fontsize=8, loc="upper left")
+    ax.set_ylim(0, max(1.0, float((f + m).max()) if len(hs) else 1.0) * 1.22)
+    ax.legend(frameon=False, fontsize=8, loc="upper left", ncol=2)
     ax.set_title("Saatlere göre kadın ve erkek ziyaretçi")
     fig.text(0.08, 0.045, "Tahminler cihazın içinde yapılır, görüntü saklanmaz. Yüzü ya da vücudu yeterince net görülemeyen\n"
                           "ziyaretçiler \"bilinmiyor\" kalır ve dağılıma katılmaz; personel dahil edilmez. Sonuçlar tahminidir;\n"
