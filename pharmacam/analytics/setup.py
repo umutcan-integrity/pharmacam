@@ -12,6 +12,7 @@ The engine feeds this a little of every frame; the panel's "Kurulum" tab asks fo
 """
 from __future__ import annotations
 
+import warnings
 from collections import deque
 from typing import Any
 
@@ -23,14 +24,21 @@ except ImportError:  # pragma: no cover
     cv2 = None
 
 LIGHT_EVERY_S = 2.0
+TILES = (8, 6)  # focus is judged tile by tile: each part of the shop against its own best
 AUDIT_MATCH_S = 6.0  # a system count this close to a tap is the same person
+
+
+def _relative(tiles: np.ndarray, ref: np.ndarray) -> float | None:
+    """Median over textured, visible tiles of current / reference sharpness, in %, at most 100."""
+    ok = ~np.isnan(tiles) & (ref > 20)  # bare walls and floor say nothing about focus
+    return float(np.median(np.minimum(1.0, tiles[ok] / ref[ok]))) * 100 if ok.any() else None
 
 
 class SetupMonitor:
     def __init__(self):
         self.light: dict[str, float] | None = None
         self._light_ts = 0.0
-        self.sharp_hist: deque[tuple[float, float]] = deque(maxlen=300)  # (ts, sharpness) of the last 10 min
+        self.sharp_hist: deque[tuple[float, np.ndarray]] = deque(maxlen=300)  # (ts, tile sharpness) of the last 10 min
         self.conf: deque[float] = deque(maxlen=900)  # detector confidence of tracked people
         self.height_px: deque[float] = deque(maxlen=900)
         self.top_cut: deque[int] = deque(maxlen=900)
@@ -46,18 +54,40 @@ class SetupMonitor:
             h, w = img.shape[:2]
             small = cv2.resize(img, (320, max(1, round(h * 320 / w))), interpolation=cv2.INTER_AREA)
             gray = cv2.cvtColor(small, cv2.COLOR_RGB2GRAY)
-            sharp = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-            self.sharp_hist.append((ts, sharp))
+            # Sharpness of the shop itself, tile by tile: people bring edges of their own and cover
+            # parts of the scene, so one number for the whole picture would call a quiet moment blurry.
+            lap = cv2.Laplacian(gray, cv2.CV_64F)
+            sh, sw = gray.shape
+            busy = np.zeros(gray.shape, bool)
+            for t in active:
+                x1, y1, x2, y2 = t.box
+                busy[max(0, int(y1 * sh) - 3):int(y2 * sh) + 3, max(0, int(x1 * sw) - 3):int(x2 * sw) + 3] = True
+            tiles = np.full(TILES[0] * TILES[1], np.nan)
+            for i in range(TILES[1]):
+                for j in range(TILES[0]):
+                    ys, xs = slice(i * sh // TILES[1], (i + 1) * sh // TILES[1]), slice(j * sw // TILES[0], (j + 1) * sw // TILES[0])
+                    if not busy[ys, xs].any():
+                        tiles[i * TILES[0] + j] = lap[ys, xs].var()
+            self.sharp_hist.append((ts, tiles))
             while self.sharp_hist and ts - self.sharp_hist[0][0] > 600:
                 self.sharp_hist.popleft()
-            best = max(v for _, v in self.sharp_hist)
+            with warnings.catch_warnings():  # tiles nobody has seen free yet are all-NaN
+                warnings.simplefilter("ignore", RuntimeWarning)
+                # the check: each tile against its usual sharpness (80th percentile of 10 min), which a
+                # passer-by does not raise — a lens knocked out of focus pulls every tile down
+                pct = _relative(tiles, np.nanpercentile(np.vstack([v for _, v in self.sharp_hist]), 80, axis=0))
+                # the bar watched while turning the lens: against the best of the last 2 min
+                recent = np.vstack([v for t2, v in self.sharp_hist if ts - t2 <= 120])
+                steady = [np.nanmedian(recent[k:k + 3], axis=0) for k in range(max(1, len(recent) - 2))]
+                live = _relative(tiles, np.nanmax(np.vstack(steady), axis=0))
+            sharp = float((lap[~busy] if (~busy).mean() > 0.3 else lap).var())  # absolute floor for real blur
             self.light = {
                 "brightness": float(gray.mean()),
                 "clipped": float((gray >= 250).mean()),
                 "dark": float((gray <= 12).mean()),
                 "sharpness": sharp,
-                # focus relative to the best seen lately: what the installer watches while turning the lens
-                "focus_pct": round(100 * sharp / best, 0) if best > 0 else None,
+                "focus_pct": round(pct, 0) if pct is not None else None,  # for the check
+                "focus_live": round(live, 0) if live is not None else None,  # for the bar while turning the lens
                 "ts": ts,
             }
         H = img.shape[0] if img is not None else 960
@@ -83,12 +113,19 @@ class SetupMonitor:
             out.append({"key": key, "title": title, "status": status, "value": value, "advice": advice})
 
         fps = health.get("fps") or 0
+        # the rate the source should reach: the model's (15 for YOLO11n), else what the source is set to
+        src = cfg["camera"]["source"]
+        want = (health.get("model") or {}).get("fps") or \
+            ((cfg.data.get("simulator") or {}).get("fps", 10) if src == "simulator" else 15)
+        if src == "video":
+            want = float(cfg["camera"].get("fps") if str(cfg["camera"].get("fps")) != "auto" else 15)
         if not health.get("camera_ok"):
             add("camera", "Kamera", "bad", "görüntü yok",
                 "Kamera kablosunu kontrol edin (kilit kapalı mı, temaslar doğru yönde mi), sonra Pi'yi yeniden başlatın.")
         else:
-            add("camera", "Kamera ve analiz hızı", "good" if fps >= 12 else "warn", f"{fps:.0f} kare/sn",
-                "" if fps >= 12 else "Analiz yavaş: Pi ısınıyor olabilir (soğutucu/fan) ya da başka bir yük var.")
+            ok = fps >= 0.8 * float(want)
+            add("camera", "Kamera ve analiz hızı", "good" if ok else "warn", f"{fps:.0f} kare/sn",
+                "" if ok else "Analiz yavaş: Pi ısınıyor olabilir (soğutucu/fan) ya da başka bir yük var.")
         sysst = health.get("system") or {}
         if "undervoltage_now" in sysst:  # Raspberry Pi only
             if sysst["undervoltage_now"]:

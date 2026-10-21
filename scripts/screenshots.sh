@@ -9,8 +9,8 @@ CH="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 mkdir -p "$OUT"
 shot() {  # name, query+hash, height
   "$CH" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
-    --window-size=1280,"${3:-900}" --virtual-time-budget=7000 \
-    --screenshot="$OUT/$1.png" "$URL/?theme=light&$2" >/dev/null 2>&1
+    --window-size=1280,"${3:-900}" --virtual-time-budget=7000 --timeout=20000 \
+    --screenshot="$OUT/$1.png" "$URL/?theme=light&shot=1&$2" >/dev/null 2>&1
   echo "$OUT/$1.png"
 }
 shot panel-canli "#live" 1180

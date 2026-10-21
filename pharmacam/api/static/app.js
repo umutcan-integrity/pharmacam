@@ -63,9 +63,9 @@ function toast(msg) {
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 function fmtDur(s) {
   if (s === null || s === undefined) return "—";
-  s = Number(s);
-  if (s < 60) return `${Math.round(s)} sn`;
-  return `${Math.floor(s / 60)} dk ${String(Math.round(s % 60)).padStart(2, "0")} sn`;
+  s = Math.round(Number(s));  // round first: 119.6 s is "2 dk 00 sn", not "1 dk 60 sn"
+  if (s < 60) return `${s} sn`;
+  return `${Math.floor(s / 60)} dk ${String(s % 60).padStart(2, "0")} sn`;
 }
 const pad = (n) => String(n).padStart(2, "0");
 const hh = (h) => `${pad(h)}:00`;
@@ -601,7 +601,7 @@ async function setupChecks() {
   const ic = { good: "✓", warn: "!", bad: "✕", info: "i" };
   $("#st-checks").innerHTML = d.checks.map((c) => `<li><span class="ic ${c.status}">${ic[c.status]}</span><span class="t">${esc(c.title)}</span>` +
     `<span class="v">${esc(c.value)}</span>${c.advice ? `<span class="a">${esc(c.advice)}</span>` : ""}</li>`).join("");
-  const fp = d.light?.focus_pct;
+  const fp = d.light?.focus_live ?? d.light?.focus_pct;  // the bar follows the lens as it is turned
   $("#st-focus").style.width = fp == null ? "0" : `${Math.min(100, fp)}%`;
   $("#st-focus-v").textContent = fp == null ? "—" : `%${fp}`;
 }
@@ -737,10 +737,11 @@ function auditCard(r) {
 async function setupAudits() {
   const rows = await api("/api/audits").catch(() => []);
   $("#st-audits").innerHTML = rows.length
-    ? `<thead><tr><th>Tarih</th><th class="num">Süre</th><th class="num">Giren (elle/sistem)</th><th class="num">Çıkan (elle/sistem)</th><th class="num">Doğruluk</th></tr></thead><tbody>` +
+    ? `<thead><tr><th>Test</th><th class="num">Giren<br><span class="muted">elle / sistem</span></th><th class="num">Çıkan<br><span class="muted">elle / sistem</span></th><th class="num">Doğruluk</th></tr></thead><tbody>` +
       rows.map((a) => {
         const r = a.result || { in: {}, out: {} };
-        return `<tr><td>${esc(a.day)} ${timeOf(a.started_at)}${a.note ? ` · ${esc(a.note)}` : ""}</td><td class="num">${fmtDur(a.ended_at - a.started_at)}</td>` +
+        return `<tr><td>${trDate(a.day)} ${timeOf(a.started_at)} <span class="muted">· ${fmtDur(a.ended_at - a.started_at)}</span>` +
+          `${a.note ? `<br><span class="muted small">${esc(a.note)}</span>` : ""}</td>` +
           `<td class="num">${r.in.manual ?? "—"} / ${r.in.system ?? "—"}</td><td class="num">${r.out.manual ?? "—"} / ${r.out.system ?? "—"}</td>` +
           `<td class="num"><b>${r.overall == null ? "—" : "%" + r.overall}</b></td></tr>`;
       }).join("") + "</tbody>"

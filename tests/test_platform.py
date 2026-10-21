@@ -3,6 +3,7 @@ import gzip
 import json
 from datetime import date, timedelta
 
+import numpy as np
 import pytest
 from conftest import Scene, sim_config, ts_at
 from fastapi.testclient import TestClient
@@ -269,3 +270,27 @@ def test_setup_checks_warn_about_a_weak_power_supply(tmp_path):
     assert rows({"undervoltage_now": False, "undervoltage_seen": False})["power"]["status"] == "good"
     assert rows({"undervoltage_now": False, "undervoltage_seen": True})["power"]["status"] == "warn"
     assert rows({"undervoltage_now": True, "undervoltage_seen": True})["power"]["status"] == "bad"
+
+
+def test_focus_check_ignores_the_people_in_the_picture():
+    from types import SimpleNamespace
+
+    from pharmacam.analytics.setup import SetupMonitor
+
+    rng = np.random.default_rng(1)
+    scene = (rng.random((480, 640)) * 60 + 100).astype(np.uint8)  # a calm, slightly textured shop
+    busy = scene.copy()
+    busy[100:400, 200:300] = np.where(rng.random((300, 100)) > 0.5, 255, 0)  # a person in a striped coat
+    mon = SetupMonitor()
+    person = SimpleNamespace(box=(200 / 640, 100 / 480, 300 / 640, 400 / 480), score=0.9)
+    mon.observe(SimpleNamespace(image=np.dstack([busy] * 3)), [person], 0.0)
+    mon.observe(SimpleNamespace(image=np.dstack([scene] * 3)), [], 10.0)
+    assert mon.light["focus_pct"] >= 90  # the shop did not get blurrier when the person left
+    import cv2
+
+    for k in range(10):
+        mon.observe(SimpleNamespace(image=np.dstack([scene] * 3)), [], 20.0 + 2 * k)
+    blurred = cv2.GaussianBlur(scene, (0, 0), 3)
+    for k in range(3):  # someone knocks the lens
+        mon.observe(SimpleNamespace(image=np.dstack([blurred] * 3)), [], 60.0 + 2 * k)
+    assert mon.light["focus_pct"] < 50

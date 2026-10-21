@@ -168,14 +168,14 @@ def record_live(cfg: Config, today: str) -> None:
     live_dir.mkdir()
     y, m, d = map(int, today.split("-"))
     start = datetime(y, m, d, 18, 0, tzinfo=timeutil.tz()).timestamp()
-    cfg.data["simulator"].update(realtime=False, start_ts=start, duration_s=200, seed=5, hour_override=18)
+    cfg.data["simulator"].update(realtime=False, start_ts=start, duration_s=900, seed=5, hour_override=18)
     engine = AnalyticsEngine(cfg, Store(":memory:"))
     base = json.loads((DATA / (api_key("/api/summary", {"day": today}) + ".json")).read_text())
     seq = []
     for i, frame in enumerate(SimulatorSource(cfg).frames()):
         live = engine.process(frame)
-        if i < 600 or i % 5:  # 60 s warm-up, then 2 samples per second
-            continue
+        if len(seq) >= LIVE_FRAMES or i < 600 or i % 5:  # 60 s warm-up, then 2 samples per second;
+            continue  # after the recording, a few more minutes for the installation assistant to learn the door
         snap = engine.snapshot()
         snap["camera_ok"] = True
         snap["zone_names"] = {z.id: z.name for z in cfg.zones}
@@ -184,8 +184,6 @@ def record_live(cfg: Config, today: str) -> None:
         snap["exits_today"] = snap["entries_today"] - live.occupancy
         seq.append(snap)
         (live_dir / f"frame_{len(seq) - 1:03d}.jpg").write_bytes(encode_jpeg(frame.image, 72))
-        if len(seq) >= LIVE_FRAMES:
-            break
     (live_dir / "seq.json").write_text(json.dumps(seq, ensure_ascii=False, separators=(",", ":")))
 
     # the installation assistant as it would look after these minutes of watching

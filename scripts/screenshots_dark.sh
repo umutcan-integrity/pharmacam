@@ -9,7 +9,7 @@ CH="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 mkdir -p "$OUT"
 shot() {
   "$CH" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
-    --window-size=1280,"${3:-900}" --virtual-time-budget=5000 \
+    --window-size=1280,"${3:-900}" --virtual-time-budget=5000 --timeout=20000 \
     --screenshot="$OUT/$1.png" "$URL/?theme=dark&shot=1&$2" >/dev/null 2>&1
   echo "$OUT/$1.png"
 }
