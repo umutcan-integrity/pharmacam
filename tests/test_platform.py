@@ -294,3 +294,30 @@ def test_focus_check_ignores_the_people_in_the_picture():
     for k in range(3):  # someone knocks the lens
         mon.observe(SimpleNamespace(image=np.dstack([blurred] * 3)), [], 60.0 + 2 * k)
     assert mon.light["focus_pct"] < 50
+
+
+def test_hub_shows_the_customer_profile_and_upgrades_old_databases(tmp_path, monkeypatch):
+    import sqlite3
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from pharmacam.hub.app import create_hub
+
+    old = sqlite3.connect(tmp_path / "hub.db")  # a hub created before the customer profile existed
+    old.execute("CREATE TABLE visits (device_id TEXT NOT NULL, uid TEXT NOT NULL, day TEXT, hour INTEGER, "
+                "started_at REAL, ended_at REAL, duration_s REAL, is_staff INTEGER, entered INTEGER, exited INTEGER, "
+                "queue_wait_s REAL, service_s REAL, served INTEGER, abandoned INTEGER, zones TEXT, "
+                "PRIMARY KEY (device_id, uid))")
+    old.commit()
+    old.close()
+    monkeypatch.setenv("PHARMACAM_HUB_TOKENS", "d1:tok")
+    hub = TestClient(create_hub(str(tmp_path / "hub.db")))
+    day = datetime.now(ZoneInfo("Europe/Istanbul")).strftime("%Y-%m-%d")
+    visits = [{"uid": f"u{i}", "day": day, "hour": 10, "is_staff": 0, "gender": g, "age": a}
+              for i, (g, a) in enumerate([("F", 30), ("F", 40), ("M", 50), (None, None)])]
+    body = gzip.compress(json.dumps({"device": {"id": "d1", "pharmacy_name": "X", "timezone": "Europe/Istanbul"},
+                                     "visits": visits}).encode())
+    hdr = {"Content-Encoding": "gzip", "Content-Type": "application/json", "Authorization": "Bearer tok"}
+    assert hub.post("/api/v1/ingest", content=body, headers=hdr).status_code == 200
+    today = hub.get("/api/v1/devices").json()[0]["today"]
+    assert today["female_pct"] == 67 and today["median_age"] == 40

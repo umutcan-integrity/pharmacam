@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS devices (
 CREATE TABLE IF NOT EXISTS visits (
     device_id TEXT NOT NULL, uid TEXT NOT NULL, day TEXT, hour INTEGER, started_at REAL, ended_at REAL,
     duration_s REAL, is_staff INTEGER, entered INTEGER, exited INTEGER, queue_wait_s REAL, service_s REAL,
-    served INTEGER, abandoned INTEGER, zones TEXT,
+    served INTEGER, abandoned INTEGER, zones TEXT, gender TEXT, age REAL,
     PRIMARY KEY (device_id, uid)
 );
 CREATE INDEX IF NOT EXISTS idx_hv_day ON visits(device_id, day);
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS heatmaps (
 MINUTE_COLS = ("ts", "day", "hour", "entries", "exits", "staff_entries", "occupancy_avg", "occupancy_max",
                "visible_avg", "queue_avg", "queue_max", "staff_avg", "served", "wait_sum", "samples")
 VISIT_COLS = ("uid", "day", "hour", "started_at", "ended_at", "duration_s", "is_staff", "entered", "exited",
-              "queue_wait_s", "service_s", "served", "abandoned", "zones")
+              "queue_wait_s", "service_s", "served", "abandoned", "zones", "gender", "age")
 ZONE_COLS = ("hour_key", "day", "zone", "visits", "passes", "dwell_total", "dwell_max", "updated_at")
 
 
@@ -89,6 +89,10 @@ class HubDB:
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.executescript(SCHEMA)
+        have = {r[1] for r in self.conn.execute("PRAGMA table_info(visits)")}
+        for col, typ in (("gender", "TEXT"), ("age", "REAL")):  # hubs created before the customer profile
+            if col not in have:
+                self.conn.execute(f"ALTER TABLE visits ADD COLUMN {col} {typ}")
         self.lock = threading.RLock()
 
     def q(self, sql: str, args=()) -> list[dict[str, Any]]:
@@ -189,12 +193,18 @@ def create_hub(db_path: str | None = None) -> FastAPI:
         m = db.q("""SELECT COALESCE(SUM(entries),0) entries, COALESCE(MAX(occupancy_max),0) peak,
                            COALESCE(SUM(served),0) served, COALESCE(SUM(wait_sum),0) wait_sum
                     FROM minutes WHERE device_id=? AND day=?""", (device_id, day))[0]
-        v = db.q("SELECT SUM(abandoned) ab, AVG(duration_s) dur FROM visits WHERE device_id=? AND day=? AND is_staff=0",
-                 (device_id, day))[0]
+        v = db.q("""SELECT SUM(abandoned) ab, AVG(duration_s) dur, SUM(gender='F') f, SUM(gender='M') m
+                    FROM visits WHERE device_id=? AND day=? AND is_staff=0""", (device_id, day))[0]
+        ages = [r["age"] for r in db.q("SELECT age FROM visits WHERE device_id=? AND day=? AND is_staff=0 "
+                                       "AND age IS NOT NULL", (device_id, day))]
+        known = (v["f"] or 0) + (v["m"] or 0)
         return {
             "entries": m["entries"], "peak_occupancy": m["peak"], "served": m["served"],
             "avg_wait_s": round(m["wait_sum"] / m["served"], 1) if m["served"] else None,
             "abandoned": v["ab"] or 0, "avg_visit_s": round(v["dur"], 1) if v["dur"] else None,
+            # estimated customer profile, when the device has it switched on
+            "female_pct": round(100 * (v["f"] or 0) / known) if known else None,
+            "median_age": round(float(np.median(ages))) if ages else None,
         }
 
     def device_day(device: dict) -> str:

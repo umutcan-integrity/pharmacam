@@ -65,7 +65,8 @@ kutuları takip eder, analiz eder ve veriyi saklar. **Görüntü kaydedilmez, y�
 - [ ] Yaş/cinsiyet: gerçek eczane görüntüsünde ~300 etiketli ziyaretle kalibrasyon (rıza alınmış), sonuçların
       karışıklık matrisiyle düzeltilmesi; başörtüsü/şapka, 60+ yaş ayrıca ölçülmeli
 - [ ] Yaş/cinsiyet için kesitleri 2028×1520 akıştan almak (yüzler 1,6 kat büyür; CPU etkisi ölçülmeli)
-- [ ] Hub: müşteri profili (cinsiyet/yaş) senkronu ve şube karşılaştırması
+- [x] Hub: müşteri profili (cinsiyet/yaş) senkronu; şube kartında bugünün kadın oranı ve medyan yaşı
+- [ ] Hub: şube karşılaştırma grafiği (profil, dönemsel)
 - [ ] Hukuki görüş: KVKK'da şablonsuz yaş/cinsiyet tahmininin dayanağı (m.5/2-f mi, açık rıza mı)
 - [ ] İlk eczanede 2 hafta pilot; kapı sayımının elle sayımla karşılaştırılması (hedef ≥ %95)
 - [ ] Önlük eşiğinin eczane ışığına göre kalibrasyonu (panelden ayarlanabilir)

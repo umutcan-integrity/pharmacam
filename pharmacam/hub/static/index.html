@@ -58,7 +58,7 @@ async function refresh(){
   $("#devs").innerHTML=devs.map(d=>`<button class="ph${sel===d.id?" sel":""}" data-id="${esc(d.id)}"><h3>${esc(d.pharmacy_name)}</h3>
     <div class="st"><span class="dot${d.online?" on":""}"></span>${d.online?(d.camera_ok?"çevrimiçi · kamera aktif":"çevrimiçi · kamera sorunu"):"çevrimdışı"} · ${esc(d.id)}</div>
     <div class="nums"><div><b>${d.online?d.live.occupancy??0:"—"}</b><span>içeride</span></div><div><b>${d.online?d.live.queue_length??0:"—"}</b><span>sırada</span></div><div><b>${d.today.entries}</b><span>bugün giren</span></div></div>
-    <div class="st" style="margin-top:8px">ort. bekleme ${dur(d.today.avg_wait_s)} · vazgeçen ${d.today.abandoned}${d.system.cpu_temp_c?` · ${d.system.cpu_temp_c}°C`:""}</div></button>`).join("")||`<p class="muted">Henüz bağlı cihaz yok. Cihazda sync.enabled: true ve hub_url ayarlayın.</p>`;
+    <div class="st" style="margin-top:8px">ort. bekleme ${dur(d.today.avg_wait_s)} · vazgeçen ${d.today.abandoned}${d.today.female_pct!=null?` · kadın %${d.today.female_pct}`:""}${d.today.median_age!=null?` · yaş ~${d.today.median_age}`:""}${d.system.cpu_temp_c?` · ${d.system.cpu_temp_c}°C`:""}</div></button>`).join("")||`<p class="muted">Henüz bağlı cihaz yok. Cihazda sync.enabled: true ve hub_url ayarlayın.</p>`;
   document.querySelectorAll(".ph").forEach(b=>b.onclick=()=>{sel=b.dataset.id;refresh();detail(devs.find(x=>x.id===sel))});
   $("#clock").textContent=new Date().toLocaleTimeString("tr-TR");
 }

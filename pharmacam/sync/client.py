@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 BATCH = 500
 MAX_BATCHES_PER_TICK = 10
 VISIT_COLS = ("uid", "day", "hour", "started_at", "ended_at", "duration_s", "is_staff", "entered", "exited",
-              "queue_wait_s", "service_s", "served", "abandoned", "zones")
+              "queue_wait_s", "service_s", "served", "abandoned", "zones", "gender", "age")
 
 
 def build_payload(rt, include_rows: bool = True) -> tuple[dict, dict]:
