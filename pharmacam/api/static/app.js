@@ -144,8 +144,8 @@ const lineDs = (label, data, color, extra = {}) => ({ label, data, borderColor: 
 
 /* ----------------------------------------------------------------- tabs */
 const LOADERS = {
-  live: loadLive, analysis: loadAnalysis, shelves: loadShelves, queue: loadQueue, heatmap: loadHeatmap,
-  forecast: loadForecast, visits: loadVisits, reports: loadReports, zones: loadZones, settings: loadSettings,
+  live: loadLive, analysis: loadAnalysis, profile: loadProfile, shelves: loadShelves, queue: loadQueue, heatmap: loadHeatmap,
+  forecast: loadForecast, visits: loadVisits, reports: loadReports, zones: loadZones, setup: loadSetup, settings: loadSettings,
 };
 function showTab(tab) {
   S.tab = tab;
@@ -230,7 +230,7 @@ function liveIngest(lv) {
     const b = t.box || [t.foot[0] - 0.03, t.foot[1] - 0.2, t.foot[0] + 0.03, t.foot[1]];
     let p = LIVE.people.get(t.id);
     if (!p) { p = { id: t.id, b: [...b], born: now }; LIVE.people.set(t.id, p); }
-    Object.assign(p, { tb: b, staff: t.staff, wait: t.wait, n: t.n, inS: t.in_s ?? t.seen_s, at: now, gone: 0 });
+    Object.assign(p, { tb: b, staff: t.staff, wait: t.wait, n: t.n, inS: t.in_s ?? t.seen_s, g: t.g, age: t.age, at: now, gone: 0 });
     seen.add(t.id);
   }
   for (const p of LIVE.people.values()) if (!seen.has(p.id) && !p.gone) p.gone = now;
@@ -432,12 +432,16 @@ function liveDraw(now) {
       w = (3 + 6 + 10 + 1) * ts + Math.max(18 * ts, textW("P", fnum) + 10 * ts) + textW("Personel", ftxt);
     } else {
       const t = queue ? mmss(p.wait + el) : p.inS != null ? mmss(p.inS + el) : "";
+      // estimated gender / age when the installer shows them: "K 34", "E", "38"
+      const dtx = [p.g === "F" ? "K" : p.g === "M" ? "E" : "", p.age != null ? String(p.age) : ""].filter(Boolean).join(" ");
+      const demo = dtx ? `<span class="d">${dtx}</span>` : "";
+      const dw = dtx ? 13 * ts + textW(dtx, `600 ${11 * ts}px ${SYS}`) : 0;
       if (p.n != null) {
-        html = `<span class="num">${p.n}</span><span class="t">${queue ? CLOCK : ""}${t}</span>`; cls = `ptag${queue ? " queue" : ""}`;
-        w = (3 + 6 + 10 + 1) * ts + Math.max(18 * ts, textW(String(p.n), fnum) + 10 * ts) + textW(t, ftxt) + (queue ? 15 * ts : 0);
+        html = `<span class="num">${p.n}</span><span class="t">${queue ? CLOCK : ""}${t}</span>${demo}`; cls = `ptag${queue ? " queue" : ""}`;
+        w = (3 + 6 + 10 + 1) * ts + Math.max(18 * ts, textW(String(p.n), fnum) + 10 * ts) + textW(t, ftxt) + (queue ? 15 * ts : 0) + dw;
       } else {
-        html = `<span class="t">${queue ? CLOCK : ""}${t}</span>`; cls = "ptag new";
-        w = (10 + 10 + 1) * ts + textW(t, ftxt) + (queue ? 15 * ts : 0);
+        html = `<span class="t">${queue ? CLOCK : ""}${t}</span>${demo}`; cls = "ptag new";
+        w = (10 + 10 + 1) * ts + textW(t, ftxt) + (queue ? 15 * ts : 0) + dw;
       }
     }
     const at = cam
@@ -574,6 +578,207 @@ async function loadShelves() {
   $("#tb-shelves").innerHTML = `<thead><tr><th>Raf</th><th class="num">Duruş</th><th class="num">Geçiş</th><th class="num">Durma oranı</th><th class="num">Ort. süre</th><th class="num">En uzun</th><th class="num">Toplam</th></tr></thead><tbody>` +
     (rows.map((r) => `<tr><td><div class="bar-cell"><i style="width:${Math.round((60 * r.stops) / max)}px"></i>${esc(r.name)}</div></td><td class="num">${r.stops}</td><td class="num">${r.passes}</td><td class="num">${r.stop_rate == null ? "—" : "%" + Math.round(r.stop_rate)}</td><td class="num">${fmtDur(r.avg_dwell_s)}</td><td class="num">${fmtDur(r.max_dwell_s)}</td><td class="num">${r.total_dwell_min} dk</td></tr>`).join("")
       || `<tr><td colspan="7" class="muted">Bu aralıkta veri yok. Raf bölgelerini "Bölgeler" sekmesinden tanımlayın.</td></tr>`) + "</tbody>";
+}
+
+/* ---------------------------------------------------- installation assistant */
+const MOUNT_TIPS = {
+  above_door: "Kapının hemen üstüne, 2,5–2,8 m yüksekliğe; 25–30° aşağı eğimle tezgâha doğru. Kapı eşiği görüntüye girmez, çizgi kapıdan yaklaşık 2,5 m içeride sayar. Tezgâhtaki kişilerin başı görünmeli.",
+  facing_door: "Arka duvara ya da tezgâhın üstüne, 2,4–3 m yüksekliğe; kapıyı tam karşıdan görecek şekilde. Cam vitrinden ters ışık gelebilir. Çizgiyi kapı eşiğinin hemen içine çizin.",
+  corner: "Bir köşeye, 2,6–3 m yüksekliğe; 30–40° eğimle. Kapı görüntünün bir kenarında kalmalı; çizgiyi kapının iç tarafına çizin.",
+};
+const SETUP = { mount: "above_door", door: null, bg: null, timer: null, poll: null, busy: false };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function loadSetup() {
+  await Promise.all([setupChecks(), setupDoor(), setupAudits(), setupAuditState()]);
+  clearInterval(SETUP.timer);
+  SETUP.timer = setInterval(() => (S.tab === "setup" ? setupChecks().catch(() => {}) : clearInterval(SETUP.timer)), 2000);
+}
+async function setupChecks() {
+  const d = await api("/api/setup/checks");
+  const ic = { good: "✓", warn: "!", bad: "✕", info: "i" };
+  $("#st-checks").innerHTML = d.checks.map((c) => `<li><span class="ic ${c.status}">${ic[c.status]}</span><span class="t">${esc(c.title)}</span>` +
+    `<span class="v">${esc(c.value)}</span>${c.advice ? `<span class="a">${esc(c.advice)}</span>` : ""}</li>`).join("");
+  const fp = d.light?.focus_pct;
+  $("#st-focus").style.width = fp == null ? "0" : `${Math.min(100, fp)}%`;
+  $("#st-focus-v").textContent = fp == null ? "—" : `%${fp}`;
+}
+async function setupDoor() {
+  $("#st-mount-tip").textContent = MOUNT_TIPS[SETUP.mount];
+  SETUP.door = await api("/api/setup/door", { mount: SETUP.mount });
+  const l = SETUP.door.learnt;
+  $("#st-learnt").textContent = l.zone ? `Gözleme göre: ${l.note} (${l.samples} kişi).` : `Gözleme dayalı öneri için ${l.note}.`;
+  $("#st-door-learnt").disabled = !l.zone;
+  drawDoorPreview();
+}
+function drawDoorPreview() {
+  const cv = $("#st-door-cv");
+  const draw = () => {
+    const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+    if (!r.width) return;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const g = cv.getContext("2d"), W = r.width, H = r.height;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (SETUP.bg?.naturalWidth) g.drawImage(SETUP.bg, 0, 0, W, H);
+    g.fillStyle = "rgba(0,0,0,.28)"; g.fillRect(0, 0, W, H);
+    const line = (z, color, dash, label) => {
+      if (!z?.line || z.line.length < 2) return;
+      const [[ax, ay], [bx, by]] = z.line.map(([x, y]) => [x * W, y * H]);
+      g.lineCap = "round"; g.setLineDash(dash); g.strokeStyle = color; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke(); g.setLineDash([]);
+      if (z.inside_point) {  // a small arrow towards the inside
+        const mx = (ax + bx) / 2, my = (ay + by) / 2, ix = z.inside_point[0] * W, iy = z.inside_point[1] * H;
+        const L = Math.hypot(ix - mx, iy - my) || 1, ux = (ix - mx) / L, uy = (iy - my) / L, tx = mx + ux * 22, ty = my + uy * 22;
+        g.lineWidth = 2; g.beginPath(); g.moveTo(mx, my); g.lineTo(tx, ty); g.lineTo(tx - ux * 7 - uy * 5, ty - uy * 7 + ux * 5);
+        g.moveTo(tx, ty); g.lineTo(tx - ux * 7 + uy * 5, ty - uy * 7 - ux * 5); g.stroke();
+      }
+      g.font = `600 12px ${SYS}`;
+      const tw = g.measureText(label).width + 16, lx = Math.min(Math.max(4, (ax + bx) / 2 - tw / 2), W - tw - 4);
+      const ly = Math.min(Math.max(4, Math.min(ay, by) - 30), H - 26);
+      g.fillStyle = "rgba(20,20,22,.72)"; g.beginPath(); g.roundRect(lx, ly, tw, 22, 11); g.fill();
+      g.fillStyle = color; g.fillText(label, lx + 8, ly + 15);
+    };
+    line(SETUP.door.current, "rgba(255,255,255,.75)", [5, 5], "Şu anki");
+    line(SETUP.door.learnt?.zone, "#ff5c8a", [8, 5], "Gözleme göre");
+    line(SETUP.door.preset, "#ffbe40", [], "Öneri");
+  };
+  if (!SETUP.bg) {
+    SETUP.bg = new Image();
+    SETUP.bg.onload = () => { cv.parentElement.style.aspectRatio = `${SETUP.bg.naturalWidth} / ${SETUP.bg.naturalHeight}`; draw(); };
+    SETUP.bg.src = DEMO ? `${DEMO.base}snapshot.jpg` : `api/snapshot.jpg?t=${Date.now()}`;
+  }
+  draw();
+}
+async function setupApplyDoor(zone) {
+  await send("POST", "/api/setup/door", zone);
+  S.info = await api("/api/info");
+  toast("Giriş çizgisi kaydedildi");
+  setupDoor();
+}
+async function setupCoat() {
+  const btn = $("#st-coat-measure");
+  btn.disabled = true;
+  let best = null, last = null;
+  try {
+    for (let i = 5; i > 0; i--) {
+      btn.textContent = `Ölçülüyor… ${i * 2} sn`;
+      last = await api("/api/setup/coat");
+      if (last.behind_counter.length) best = Math.max(best ?? 0, ...last.behind_counter);
+      await sleep(2000);
+    }
+  } finally { btn.disabled = false; btn.textContent = "Tekrar ölç"; }
+  const res = $("#st-coat-res"), apply = $("#st-coat-apply");
+  if (best == null) {
+    res.textContent = "Kasa arkasında kimse görülmedi. Çalışan 'Tezgâh Arkası' bölgesinde, kameraya dönük dursun.";
+    apply.classList.add("hidden");
+    return;
+  }
+  const thr = last.suggested ?? Math.round(best * 80) / 100;
+  SETUP.coatThr = thr;
+  res.innerHTML = `Kasa arkasındaki önlük beyazlığı <b>%${Math.round(best * 100)}</b>` +
+    (last.customers_p95 != null ? `, bugünkü müşterilerin %95'i <b>%${Math.round(last.customers_p95 * 100)}</b>'in altında` : "") +
+    `. Önerilen eşik <b>${thr}</b> (şu an ${last.threshold}).`;
+  apply.classList.remove("hidden");
+}
+async function setupAuditState() {
+  const st = await api("/api/audit").catch(() => ({ active: false }));
+  renderAudit(st);
+  if (st.active) startAuditPoll();
+}
+function renderAudit(st) {
+  SETUP.audit = st;
+  const on = !!st.active;
+  $("#st-audit-pad").classList.toggle("hidden", !on);
+  $("#st-audit-start").classList.toggle("hidden", on);
+  for (const id of ["st-audit-stop", "st-audit-undo-in", "st-audit-undo-out"]) $(`#${id}`).classList.toggle("hidden", !on);
+  if (!on) return;
+  $("#st-m-in").textContent = st.manual_in; $("#st-m-out").textContent = st.manual_out;
+  $("#st-s-in").textContent = st.system_in; $("#st-s-out").textContent = st.system_out;
+}
+function startAuditPoll() {
+  clearInterval(SETUP.poll);
+  SETUP.poll = setInterval(async () => {
+    if (S.tab !== "setup" || !SETUP.audit?.active) { clearInterval(SETUP.poll); return; }
+    if (!SETUP.busy) renderAudit(await api("/api/audit").catch(() => SETUP.audit));
+  }, 1000);
+}
+async function auditTap(kind, undo = false) {
+  if (!undo) {
+    navigator.vibrate?.(25);
+    const b = $(`#st-audit-pad .tap.${kind}`);
+    b.classList.add("flash"); setTimeout(() => b.classList.remove("flash"), 160);
+    const el = $(`#st-m-${kind}`); el.textContent = Number(el.textContent) + 1;  // instant feedback
+  }
+  SETUP.busy = true;
+  try { renderAudit(await send("POST", "/api/audit/tap", { kind, undo })); } finally { SETUP.busy = false; }
+}
+async function auditStop() {
+  const btn = $("#st-audit-stop");
+  btn.disabled = true;
+  for (let i = 6; i > 0; i--) { btn.textContent = `Son sayımlar bekleniyor… ${i}`; await sleep(1000); }
+  try {
+    const out = await send("POST", "/api/audit/stop", {});
+    renderAudit({ active: false });
+    $("#st-audit-result").innerHTML = auditCard(out.result);
+    setupAudits();
+  } finally { btn.disabled = false; btn.textContent = "Testi bitir"; }
+}
+function auditCard(r) {
+  const line = (k, name) => {
+    const x = r[k];
+    return `${name}: <b>${x.manual}</b> elle · <b>${x.system}</b> sistem · ${x.matched} eşleşti` +
+      (x.missed ? ` · ${x.missed} kaçırıldı` : "") + (x.extra ? ` · ${x.extra} fazla` : "");
+  };
+  const ok = r.overall == null ? "—" : `%${r.overall}`;
+  return `<div class="audit-res"><div class="big">${ok}</div><div class="lines">Kişi kişi eşleşen sayım doğruluğu<br>${line("in", "Giren")}<br>${line("out", "Çıkan")}</div></div>`;
+}
+async function setupAudits() {
+  const rows = await api("/api/audits").catch(() => []);
+  $("#st-audits").innerHTML = rows.length
+    ? `<thead><tr><th>Tarih</th><th class="num">Süre</th><th class="num">Giren (elle/sistem)</th><th class="num">Çıkan (elle/sistem)</th><th class="num">Doğruluk</th></tr></thead><tbody>` +
+      rows.map((a) => {
+        const r = a.result || { in: {}, out: {} };
+        return `<tr><td>${esc(a.day)} ${timeOf(a.started_at)}${a.note ? ` · ${esc(a.note)}` : ""}</td><td class="num">${fmtDur(a.ended_at - a.started_at)}</td>` +
+          `<td class="num">${r.in.manual ?? "—"} / ${r.in.system ?? "—"}</td><td class="num">${r.out.manual ?? "—"} / ${r.out.system ?? "—"}</td>` +
+          `<td class="num"><b>${r.overall == null ? "—" : "%" + r.overall}</b></td></tr>`;
+      }).join("") + "</tbody>"
+    : `<tbody><tr><td class="muted">Henüz doğruluk testi yapılmadı.</td></tr></tbody>`;
+}
+
+/* ------------------------------------------------------ customer profile */
+async function loadProfile() {
+  $("#pf-off").classList.toggle("hidden", !!S.info.demographics);
+  const d = await api("/api/demographics", rangeOf("pf-range"));
+  const pct = (v) => (v == null ? "—" : `%${v}`);
+  $("#pf-tiles").innerHTML = [
+    tile("Kadın ziyaretçi", pct(d.female_pct), d.with_gender ? `${d.female} kadın · ${d.male} erkek` : "tahmin yok"),
+    tile("Medyan yaş", d.median_age ?? "—", "tahmini"),
+    tile("En kalabalık yaş grubu", d.top_band ?? "—"),
+    tile("Tahmin yapılan ziyaret", pct(d.coverage_gender), d.visits ? `cinsiyet ${d.with_gender}/${d.visits} · yaş %${d.coverage_age ?? 0}` : "ziyaret yok"),
+  ].join("");
+  const female = css("--s2"), male = css("--s1");
+  chart("ch-pf-age", {
+    type: "bar",
+    data: {
+      labels: d.bands.map((b) => b.band),
+      datasets: [barDs("Kadın", d.bands.map((b) => b.F), female), barDs("Erkek", d.bands.map((b) => b.M), male),
+                 barDs("Cinsiyet belirsiz", d.bands.map((b) => b.unknown), css("--neutral"))],
+    },
+    options: { scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, ticks: { precision: 0 } } } },
+  });
+  const byH = Object.fromEntries(d.by_hour.map((r) => [r.hour, r]));
+  const rows = openHours()(Array.from({ length: 24 }, (_, h) => {
+    const r = byH[h] || { F: 0, M: 0 };
+    return { hour: h, F: r.F, M: r.M, entries: r.F + r.M };
+  }));
+  chart("ch-pf-hour", {
+    type: "bar",
+    data: {
+      labels: rows.map((r) => hh(r.hour)),
+      datasets: [barDs("Kadın", rows.map((r) => r.F || 0), female), barDs("Erkek", rows.map((r) => r.M || 0), male)],
+    },
+    options: { scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, ticks: { precision: 0 } } } },
+  });
 }
 
 /* ---------------------------------------------------------------- queue */
@@ -809,6 +1014,8 @@ const SETTING_LABELS = {
   "analytics.min_queue_seconds": "Sıraya girmiş sayılma süresi (sn)",
   "server.live_view": "Canlı görüntü",
   "server.blur_people": "Canlı görüntüde kişileri bulanıklaştır",
+  "demographics.enabled": "Yaş ve cinsiyet tahmini (cihazda yapılır, görüntü saklanmaz)",
+  "demographics.show_live": "Tahmini canlı görünümde kişi etiketinde göster",
   "reports.opening_hour": "Açılış saati",
   "reports.closing_hour": "Kapanış saati (rapor bu saatte üretilir)",
 };
@@ -876,13 +1083,35 @@ async function boot() {
   for (const id of ["an-day", "q-day", "v-day"]) $(`#${id}`).addEventListener("change", () => showTab(S.tab));
   $("#v-staff").addEventListener("change", loadVisits);
   const askedDays = new URLSearchParams(location.search).get("days");
-  for (const seg of ["sh-range", "hm-range"]) {
+  for (const seg of ["sh-range", "hm-range", "pf-range"]) {
     if (askedDays) $$(`#${seg} button`).forEach((x) => x.classList.toggle("active", x.dataset.days === askedDays));
     $$(`#${seg} button`).forEach((b) => b.addEventListener("click", () => {
       $$(`#${seg} button`).forEach((x) => x.classList.toggle("active", x === b));
       showTab(S.tab);
     }));
   }
+  $$("#st-mount button").forEach((b) => b.addEventListener("click", () => {
+    $$("#st-mount button").forEach((x) => x.classList.toggle("active", x === b));
+    SETUP.mount = b.dataset.m;
+    setupDoor();
+  }));
+  $("#st-door-preset").addEventListener("click", () => setupApplyDoor(SETUP.door.preset));
+  $("#st-door-learnt").addEventListener("click", () => SETUP.door.learnt?.zone && setupApplyDoor(SETUP.door.learnt.zone));
+  $("#st-coat-measure").addEventListener("click", setupCoat);
+  $("#st-coat-apply").addEventListener("click", async () => {
+    await send("POST", "/api/setup/coat", { threshold: SETUP.coatThr });
+    toast("Önlük eşiği kaydedildi");
+    $("#st-coat-apply").classList.add("hidden");
+  });
+  $("#st-audit-start").addEventListener("click", async () => {
+    renderAudit(await send("POST", "/api/audit/start"));
+    $("#st-audit-result").innerHTML = "";
+    startAuditPoll();
+  });
+  $$("#st-audit-pad .tap").forEach((b) => b.addEventListener("pointerdown", (e) => { e.preventDefault(); auditTap(b.dataset.k); }));
+  $("#st-audit-undo-in").addEventListener("click", () => auditTap("in", true));
+  $("#st-audit-undo-out").addEventListener("click", () => auditTap("out", true));
+  $("#st-audit-stop").addEventListener("click", auditStop);
   $("#rep-make").addEventListener("click", async () => {
     await send("POST", `/api/reports/${S.info.today}`);
     toast("Rapor oluşturuldu");

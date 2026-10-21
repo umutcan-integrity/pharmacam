@@ -216,3 +216,42 @@ def staff_summary(store: Store, day: str) -> dict[str, Any]:
             {"hour": x["hour"], "ratio": _r(x["occupancy_avg"] / x["staff_avg"], 2) if x["staff_avg"] else None}
             for x in h],
     }
+
+
+AGE_BANDS = [(0, 18, "0-17"), (18, 25, "18-24"), (25, 35, "25-34"), (35, 45, "35-44"), (45, 55, "45-54"),
+             (55, 65, "55-64"), (65, 200, "65+")]
+
+
+def demographics(store: Store, start: str, end: str) -> dict[str, Any]:
+    """Customer profile over a period: how many visits got an estimate, gender split, age bands,
+    and the female share by hour. Staff are never included."""
+    rows = store.query(
+        "SELECT hour, gender, age FROM visits WHERE day BETWEEN ? AND ? AND is_staff=0", (start, end))
+    n = len(rows)
+    g = [r for r in rows if r["gender"] in ("F", "M")]
+    a = [r for r in rows if r["age"] is not None]
+    bands = []
+    for lo, hi, name in AGE_BANDS:
+        inb = [r for r in a if lo <= r["age"] < hi]
+        bands.append({"band": name, "F": sum(r["gender"] == "F" for r in inb),
+                      "M": sum(r["gender"] == "M" for r in inb), "unknown": sum(r["gender"] not in ("F", "M") for r in inb)})
+    ages = sorted(r["age"] for r in a)
+    by_hour = []
+    for h in range(24):
+        hg = [r for r in g if r["hour"] == h]
+        if hg:
+            by_hour.append({"hour": h, "F": sum(r["gender"] == "F" for r in hg), "M": sum(r["gender"] == "M" for r in hg)})
+    top = max(bands, key=lambda b: b["F"] + b["M"] + b["unknown"]) if a else None
+    return {
+        "start": start, "end": end,
+        "visits": n,
+        "with_gender": len(g), "with_age": len(a),
+        "coverage_gender": _r(100 * len(g) / n, 0) if n else None,
+        "coverage_age": _r(100 * len(a) / n, 0) if n else None,
+        "female": sum(r["gender"] == "F" for r in g), "male": sum(r["gender"] == "M" for r in g),
+        "female_pct": _r(100 * sum(r["gender"] == "F" for r in g) / len(g), 0) if g else None,
+        "median_age": _r(float(np.median(ages)), 0) if ages else None,
+        "top_band": top["band"] if top else None,
+        "bands": bands,
+        "by_hour": by_hour,
+    }

@@ -66,3 +66,8 @@ zones:
     type: shelf
     name: Ağrı Kesici / OTC
     polygon: [[0.20, 0.30], [0.36, 0.30], [0.36, 0.47], [0.20, 0.47]]
+
+# yaş/cinsiyet tahmini (demo): cihazda, görüntü saklanmadan; kişi etiketinde de gösterilir
+demographics:
+  enabled: true
+  show_live: true

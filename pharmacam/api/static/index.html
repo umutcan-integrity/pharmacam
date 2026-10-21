@@ -22,6 +22,7 @@
 <nav class="tabs" id="tabs" role="tablist">
   <button data-tab="live" class="active">Canlı</button>
   <button data-tab="analysis">Günlük Analiz</button>
+  <button data-tab="profile">Müşteri Profili</button>
   <button data-tab="shelves">Raflar</button>
   <button data-tab="queue">Sıra</button>
   <button data-tab="heatmap">Isı Haritası</button>
@@ -29,6 +30,7 @@
   <button data-tab="visits">Ziyaretler</button>
   <button data-tab="reports">Raporlar</button>
   <button data-tab="zones">Bölgeler</button>
+  <button data-tab="setup">Kurulum</button>
   <button data-tab="settings">Ayarlar</button>
 </nav>
 
@@ -95,6 +97,26 @@
     <div class="card"><div class="card-head"><h2>Raf tablosu</h2></div><div class="table-wrap"><table id="tb-shelves"></table></div></div>
   </section>
 
+  <!-- ============================== CUSTOMER PROFILE (estimated age / gender) -->
+  <section id="tab-profile" class="tab">
+    <div class="filters">
+      <div class="seg" id="pf-range"><button data-days="1">Bugün</button><button data-days="7" class="active">7 gün</button><button data-days="30">30 gün</button></div>
+    </div>
+    <div id="pf-off" class="card empty-state hidden">
+      <h2>Yaş ve cinsiyet tahmini kapalı</h2>
+      <p class="muted">Açmak için <b>Ayarlar → Yaş ve cinsiyet tahmini</b>. Tahminler cihazın içinde yapılır, görüntü saklanmaz;
+        yalnızca ziyaret başına tahmin ve günlük toplamlar tutulur. Açmadan önce eczanenin aydınlatma metnine ekleyin (kılavuz, bölüm 14).</p>
+    </div>
+    <div class="tiles" id="pf-tiles"></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><h2>Yaş grupları</h2><span class="muted small">tahmini, ziyaretçi sayısı</span></div><div class="chart"><canvas id="ch-pf-age"></canvas></div></div>
+      <div class="card"><div class="card-head"><h2>Saatlere göre kadın ve erkek ziyaretçi</h2></div><div class="chart"><canvas id="ch-pf-hour"></canvas></div></div>
+    </div>
+    <p class="muted small pf-note">Tahminler cihazın içinde yapılır ve görüntü saklanmaz. Yüzü ya da vücudu yeterince net görülemeyen
+      ziyaretçiler "bilinmiyor" kalır ve dağılıma katılmaz; personel hiç dahil edilmez. Sonuçlar tahminidir, kişi bazında değil
+      toplu eğilim olarak yorumlayın.</p>
+  </section>
+
   <!-- ============================== QUEUE -->
   <section id="tab-queue" class="tab">
     <div class="filters"><label>Gün <select id="q-day" class="day-select"></select></label></div>
@@ -145,6 +167,60 @@
   <section id="tab-reports" class="tab">
     <div class="filters"><button class="btn" id="rep-make">Bugünün raporunu oluştur</button></div>
     <div class="card"><div class="card-head"><h2>Günlük PDF raporları</h2><span class="muted small">her gün kapanış saatinde otomatik üretilir</span></div><ul class="reports" id="rep-list"></ul></div>
+  </section>
+
+  <!-- ============================== INSTALLATION ASSISTANT -->
+  <section id="tab-setup" class="tab">
+    <div class="card setup-intro">
+      <div>
+        <h2>Kurulum asistanı</h2>
+        <p class="muted">Kamerayı taktıktan sonra bu dört adımı sırayla yapın. Her adım, sayımın doğru olması için gereken bir
+          şeyi kontrol eder; son adım cihazın gerçek doğruluğunu ölçüp kaydeder.</p>
+      </div>
+      <ol class="setup-steps"><li><b>1</b>Montaj</li><li><b>2</b>Giriş çizgisi</li><li><b>3</b>Personel</li><li><b>4</b>Doğruluk testi</li></ol>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h2>1 · Montaj kontrolü</h2><span class="muted small"><i class="live-dot"></i> canlı</span></div>
+        <ul class="checks" id="st-checks"></ul>
+        <div class="focus-meter"><span>Odak</span><div class="meter"><i id="st-focus"></i></div><b id="st-focus-v">—</b></div>
+        <p class="muted small">Lensi yavaşça çevirin: çubuk en uzun olduğunda odak tamamdır.</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>2 · Giriş çizgisi</h2></div>
+        <div class="seg seg-sm seg-wrap" id="st-mount" role="tablist">
+          <button data-m="above_door" class="active">Kapı üstü, içeri bakıyor</button><button data-m="facing_door">Karşıdan kapıya</button><button data-m="corner">Köşede</button>
+        </div>
+        <p class="mount-tip" id="st-mount-tip"></p>
+        <div class="door-preview"><canvas id="st-door-cv"></canvas></div>
+        <p class="muted small" id="st-learnt"></p>
+        <div class="actions"><button class="btn primary" id="st-door-preset">Önerilen çizgiyi uygula</button>
+          <button class="btn" id="st-door-learnt" disabled>Gözleme göre uygula</button></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>3 · Personel (önlük) ayarı</h2></div>
+        <p class="muted">Önlüklü bir çalışan 10 saniye kasanın arkasında, kameraya görünür şekilde dursun; sonra <b>Ölç</b>'e basın.
+          Sistem önlüğün beyazlığını ölçer ve personeli müşteriden ayıracak eşiği önerir.</p>
+        <div class="actions"><button class="btn primary" id="st-coat-measure">Ölç</button>
+          <button class="btn hidden" id="st-coat-apply">Önerilen eşiği uygula</button></div>
+        <p id="st-coat-res" class="small"></p>
+      </div>
+      <div class="card audit-card">
+        <div class="card-head"><h2>4 · Sayım doğruluk testi</h2></div>
+        <p class="muted">Kapının yanında durun. Her gerçek müşteri girdiğinde <b>Giren</b>, çıktığında <b>Çıkan</b>'a basın
+          (personeli saymayın). Güvenilir bir sonuç için en az 30–50 geçiş önerilir.</p>
+        <div class="audit-pad hidden" id="st-audit-pad">
+          <button class="tap in" data-k="in"><span>Giren</span><b id="st-m-in">0</b><small>sistem: <i id="st-s-in">0</i></small></button>
+          <button class="tap out" data-k="out"><span>Çıkan</span><b id="st-m-out">0</b><small>sistem: <i id="st-s-out">0</i></small></button>
+        </div>
+        <div class="actions"><button class="btn primary" id="st-audit-start">Testi başlat</button>
+          <button class="btn hidden" id="st-audit-undo-in">Son "Giren"i geri al</button>
+          <button class="btn hidden" id="st-audit-undo-out">Son "Çıkan"ı geri al</button>
+          <button class="btn danger hidden" id="st-audit-stop">Testi bitir</button></div>
+        <div id="st-audit-result"></div>
+        <div class="table-wrap"><table id="st-audits"></table></div>
+      </div>
+    </div>
   </section>
 
   <!-- ============================== ZONES -->

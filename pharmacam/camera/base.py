@@ -12,6 +12,9 @@ class Detection:
 
     box: tuple[float, float, float, float]
     score: float
+    # optional per-person estimates that come with the detection (the simulator's ground truth
+    # with noise, or a camera that estimates them): {"female": 0..1, "age": years, "w": weight}
+    attrs: dict | None = None
 
     @property
     def foot(self) -> tuple[float, float]:

@@ -1,5 +1,6 @@
-"""Daily PDF report (A4, 4 pages) built with matplotlib only, so it runs on the Pi
-without a browser or LaTeX."""
+"""Daily PDF report (A4, 4–5 pages) built with matplotlib only, so it runs on the Pi
+without a browser or LaTeX. The customer-profile page is added when the day has
+age/gender estimates."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -32,7 +33,7 @@ STATUS = {"good": "#248a3d", "warn": "#ff9f0a", "bad": "#d70015", "info": "#6363
 STATUS_ICON = {"good": "✓", "warn": "!", "bad": "✕", "info": "i"}
 A4 = (8.27, 11.69)
 AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
-PAGES = 4
+PAGES = 4  # without the customer-profile page
 
 plt.rcParams.update({
     "font.family": "DejaVu Sans",
@@ -62,7 +63,7 @@ def _tr_date(day: str) -> str:
     return f"{d.day} {AYLAR[d.month - 1]} {d.year} {timeutil.WEEKDAYS_TR[d.weekday()]}"
 
 
-def _header(fig, title: str, subtitle: str, page: int) -> None:
+def _header(fig, title: str, subtitle: str, page: int, pages: int = PAGES) -> None:
     fig.patches.append(FancyBboxPatch((0, 0.945), 1, 0.055, boxstyle="square,pad=0", transform=fig.transFigure,
                                       facecolor=BRAND, edgecolor="none"))
     fig.text(0.05, 0.968, "✚ PharmaCam", color="white", fontsize=15, fontweight="bold", va="center")
@@ -70,7 +71,7 @@ def _header(fig, title: str, subtitle: str, page: int) -> None:
     fig.text(0.95, 0.958, subtitle, color="#c7c7cc", fontsize=8.5, ha="right", va="center")
     fig.text(0.05, 0.018, f"PharmaCam v{__version__} · Görüntü kaydedilmez, kişiler anonim izlenir (KVKK uyumlu tasarım)",
              color=MUTED, fontsize=7)
-    fig.text(0.95, 0.018, f"Sayfa {page}/{PAGES}", color=MUTED, fontsize=7, ha="right")
+    fig.text(0.95, 0.018, f"Sayfa {page}/{pages}", color=MUTED, fontsize=7, ha="right")
 
 
 def _kpi(fig, x, y, w, h, label, value, sub=None, status=None):
@@ -125,11 +126,14 @@ def generate_report(store, cfg, day: str, out_dir: Path, background: np.ndarray 
     hr = [h for h in hours if o <= h["hour"] < c] or hours
     xs = [h["hour"] for h in hr]
     sub = f"{pharmacy} · {_tr_date(day)}"
+    demo = q.demographics(store, day, day)
+    has_demo = bool(demo["with_gender"] or demo["with_age"])
+    pages = PAGES + (1 if has_demo else 0)
 
     with PdfPages(path) as pdf:
         # ------------------------------------------------------------ page 1
         fig = plt.figure(figsize=A4)
-        _header(fig, "Günlük Mağaza Raporu", sub, 1)
+        _header(fig, "Günlük Mağaza Raporu", sub, 1, pages)
         ch = 100.0 * (s["entries"] - prev["entries"]) / prev["entries"] if prev["entries"] else None
         wait_status = None
         if s["avg_wait_s"] is not None:
@@ -181,7 +185,7 @@ def generate_report(store, cfg, day: str, out_dir: Path, background: np.ndarray 
 
         # ------------------------------------------------------------ page 2
         fig = plt.figure(figsize=A4)
-        _header(fig, "Sıra ve Personel Analizi", sub, 2)
+        _header(fig, "Sıra ve Personel Analizi", sub, 2, pages)
         ax = fig.add_axes([0.08, 0.68, 0.86, 0.22])
         waits = [(h["avg_wait_s"] or 0) / 60 for h in hr]
         _bars(ax, xs, waits, S1, fmt="{:.1f} dk")
@@ -226,7 +230,7 @@ def generate_report(store, cfg, day: str, out_dir: Path, background: np.ndarray 
 
         # ------------------------------------------------------------ page 3
         fig = plt.figure(figsize=A4)
-        _header(fig, "Raf Analizi ve Isı Haritası", sub, 3)
+        _header(fig, "Raf Analizi ve Isı Haritası", sub, 3, pages)
         ax = fig.add_axes([0.28, 0.66, 0.66, 0.22])
         if zones:
             zz = list(reversed(zones))
@@ -277,7 +281,7 @@ def generate_report(store, cfg, day: str, out_dir: Path, background: np.ndarray 
 
         # ------------------------------------------------------------ page 4
         fig = plt.figure(figsize=A4)
-        _header(fig, "Yarın İçin Tahmin", sub, 4)
+        _header(fig, "Yarın İçin Tahmin", sub, 4, pages)
         ax = fig.add_axes([0.08, 0.55, 0.86, 0.32])
         if tomorrow["days"] and tomorrow["days"][0]["expected_total"]:
             d = tomorrow["days"][0]
@@ -319,6 +323,9 @@ def generate_report(store, cfg, day: str, out_dir: Path, background: np.ndarray 
         pdf.savefig(fig)
         plt.close(fig)
 
+        if has_demo:
+            _profile_page(pdf, demo, sub, pages, o, c)
+
         meta = pdf.infodict()
         meta["Title"] = f"PharmaCam Günlük Rapor {day}"
         meta["Author"] = "PharmaCam"
@@ -326,3 +333,48 @@ def generate_report(store, cfg, day: str, out_dir: Path, background: np.ndarray 
 
     store.add_report(day, str(path))
     return path
+
+
+def _profile_page(pdf, d: dict, sub: str, pages: int, o: int, c: int) -> None:
+    """Page 5: estimated gender split and age bands of the day's customers."""
+    fig = plt.figure(figsize=A4)
+    _header(fig, "Müşteri Profili (tahmini)", sub, pages, pages)
+    fmt = lambda v: "—" if v is None else f"%{v:.0f}"  # noqa: E731
+    w, h, y = 0.205, 0.075, 0.845
+    _kpi(fig, 0.05, y, w, h, "Kadın ziyaretçi", fmt(d["female_pct"]), f"{d['female']} kadın · {d['male']} erkek")
+    _kpi(fig, 0.05 + (w + 0.02), y, w, h, "Medyan yaş", "—" if d["median_age"] is None else f"{d['median_age']:.0f}",
+         "tahmini")
+    _kpi(fig, 0.05 + 2 * (w + 0.02), y, w, h, "En kalabalık yaş grubu", d["top_band"] or "—")
+    _kpi(fig, 0.05 + 3 * (w + 0.02), y, w, h, "Tahmin yapılan ziyaret", fmt(d["coverage_gender"]),
+         f"yaş: {fmt(d['coverage_age'])}")
+
+    ax = fig.add_axes([0.08, 0.47, 0.86, 0.3])
+    labels = [b["band"] for b in d["bands"]]
+    x = np.arange(len(labels))
+    fem = np.array([b["F"] for b in d["bands"]])
+    mal = np.array([b["M"] for b in d["bands"]])
+    unk = np.array([b["unknown"] for b in d["bands"]])
+    ax.bar(x, fem, color=S2, width=0.68, edgecolor="white", linewidth=1.2, label="Kadın")
+    ax.bar(x, mal, bottom=fem, color=S1, width=0.68, edgecolor="white", linewidth=1.2, label="Erkek")
+    ax.bar(x, unk, bottom=fem + mal, color=NEUTRAL, width=0.68, edgecolor="white", linewidth=1.2,
+           label="Cinsiyet belirsiz")
+    ax.set_xticks(x, labels)
+    ax.tick_params(length=0)
+    ax.legend(frameon=False, fontsize=8, loc="upper right", ncol=3)
+    ax.set_title("Yaş gruplarına göre ziyaretçi (tahmini)")
+
+    ax = fig.add_axes([0.08, 0.12, 0.86, 0.26])
+    by = {r["hour"]: r for r in d["by_hour"]}
+    hs = list(range(o, c))
+    f = np.array([by.get(hh, {}).get("F", 0) for hh in hs])
+    m = np.array([by.get(hh, {}).get("M", 0) for hh in hs])
+    ax.bar(hs, f, color=S2, width=0.72, edgecolor="white", linewidth=1.2, label="Kadın")
+    ax.bar(hs, m, bottom=f, color=S1, width=0.72, edgecolor="white", linewidth=1.2, label="Erkek")
+    _hour_axis(ax, hs)
+    ax.legend(frameon=False, fontsize=8, loc="upper left")
+    ax.set_title("Saatlere göre kadın ve erkek ziyaretçi")
+    fig.text(0.08, 0.045, "Tahminler cihazın içinde yapılır, görüntü saklanmaz. Yüzü ya da vücudu yeterince net görülemeyen\n"
+                          "ziyaretçiler \"bilinmiyor\" kalır ve dağılıma katılmaz; personel dahil edilmez. Sonuçlar tahminidir;\n"
+                          "kişi bazında değil toplu eğilim olarak yorumlayın.", fontsize=7.5, color=MUTED, linespacing=1.5)
+    pdf.savefig(fig)
+    plt.close(fig)

@@ -15,6 +15,11 @@ tracking breaks — someone hidden behind a stand, bending down, in a group — 
 matched to the person lost nearby a moment ago by the colours of their clothes, and takes back
 their number and time; when two lost people would fit equally well, nothing is guessed.
 
+Demographics (optional): while a customer is in view, a background analyser looks at their face
+(age and gender) or, when the face is not visible, their whole figure (gender) a few times; the
+estimates are averaged over the visit and stored only as the visit's age / gender. Too few or
+too uncertain looks give "unknown", never a guess.
+
 Static objects: a "person" that has not moved at all for minutes, never came through the
 door and is not behind the counter is a poster or a mannequin. It is dropped from every
 metric and its place is remembered, so the next detection there is ignored at once.
@@ -38,6 +43,7 @@ from ..camera.base import Frame
 from ..config import Config, Zone
 from ..vision.geometry import iou, point_in_polygon, projection_t, signed_side
 from ..vision import appearance
+from .setup import SetupMonitor
 from ..vision.staff import StaffClassifier
 from ..vision.tracker import Track, Tracker
 
@@ -53,6 +59,9 @@ STARTUP_GRACE_S = 8.0  # people seen this soon after start (or a scene cut) were
 REID_WINDOW_S = 30.0  # a new track may take back the label of someone lost at most this long ago
 REID_MAX_DIST = 0.30  # clothing colours at least this alike (appearance.distance)
 REID_MARGIN = 0.06  # ... and clearly closer than the next candidate
+DEMO_MIN_GENDER_W = 1.5  # evidence needed for a gender estimate (a clear face look weighs ~1)
+DEMO_MIN_AGE_W = 1.0  # ... and for an age estimate (faces only)
+DEMO_GENDER_MARGIN = 0.15  # mean probability must be this far from 50 %
 
 
 @dataclass
@@ -126,6 +135,9 @@ class AnalyticsEngine:
         self._start_ts: float | None = None  # when we started watching this scene
         self._gone: deque[dict] = deque(maxlen=200)  # recently ended people, for re-identification
         self._active_boxes: list = []
+        self.setup = SetupMonitor()  # installation checks for the panel's "Kurulum" tab
+        self.demo = None  # background age/gender analyser (vision/demographics.py), when switched on
+        self._demo_tried = False
         self._static: list[dict] = self._load_static()  # remembered static false positives
         self._minute: MinuteAcc | None = None
         self._hour_key: str | None = None
@@ -191,6 +203,13 @@ class AnalyticsEngine:
                 self._start_ts = ts
             active, ended = self.tracker.update(dets, ts)
             self._active_boxes = [t.box for t in active]
+            self.setup.observe(frame, [t for t in active if t.confirmed and not t.meta.get("phantom")], ts)
+            self._ensure_demo()
+            if self.demo:
+                by_id = {t.id: t for t in self.tracker.tracks}
+                for tid, obs in self.demo.results():
+                    if tid in by_id:
+                        self._demo_vote(by_id[tid], obs)
             for t in active:
                 if "born" not in t.meta:
                     self._on_new_track(t, ts)
@@ -217,6 +236,13 @@ class AnalyticsEngine:
             return  # a poster or a mannequin: no doors, zones, heatmap or live counts
         if frame.image is not None:
             self._observe_clothes(t, frame.image)
+        if not is_staff and self.cfg["demographics"]["enabled"]:
+            if t.attrs:  # estimates that came with the detection (simulator, or a camera that makes them)
+                self._demo_vote(t, t.attrs)
+            elif self.demo and frame.image is not None and \
+                    ts - m.get("demo_ts", 0.0) >= float(self.cfg["demographics"]["interval_s"]):
+                if self.demo.submit(t.id, frame.image, t.box, ts):
+                    m["demo_ts"] = ts
         if not is_staff and "n" not in m:
             if not m.get("reid") and m.get("sig_n", 0) >= 2:
                 m["reid"] = True
@@ -314,6 +340,59 @@ class AnalyticsEngine:
             best["track"].meta.pop("n", None)
         else:
             self._gone = deque((c for c in self._gone if c is not best), maxlen=self._gone.maxlen)
+
+    def _ensure_demo(self) -> None:
+        """Start the analyser the first time the setting is on (it can be switched on from the panel)."""
+        if self.demo or self._demo_tried or not self.cfg["demographics"]["enabled"]:
+            return
+        self._demo_tried = True
+        if self.cfg["camera"]["source"] == "simulator":
+            return  # the simulator hands its own estimates with each detection
+        try:
+            from ..vision.demographics import create_analyzer
+
+            self.demo = create_analyzer(self.cfg)
+        except Exception as e:  # missing model files / runtime: keep counting without it
+            log.warning("Yaş/cinsiyet analizi başlatılamadı: %s", e)
+
+    def _live_demo(self, m: dict) -> dict:
+        if not (self.cfg["demographics"]["enabled"] and self.cfg["demographics"]["show_live"]) or m.get("is_staff"):
+            return {}
+        gender, age = self._demo_estimate(m)
+        return {"g": gender, "age": round(age) if age is not None else None}
+
+    def _visit_demo(self, m: dict, is_staff: bool) -> dict:
+        if is_staff or "demo" not in m:
+            return {}
+        gender, age = self._demo_estimate(m)
+        return {"gender": gender, "age": round(age, 1) if age is not None else None, "demo_n": m["demo"]["n"]}
+
+    @staticmethod
+    def _demo_vote(t: Track, obs: dict) -> None:
+        w = float(obs.get("w", 1.0))
+        if w <= 0:
+            return
+        d = t.meta.setdefault("demo", {"f": 0.0, "fw": 0.0, "a": 0.0, "aw": 0.0, "n": 0})
+        if obs.get("female") is not None:
+            d["f"] += w * float(obs["female"])
+            d["fw"] += w
+        if obs.get("age") is not None:
+            d["a"] += w * float(obs["age"])
+            d["aw"] += w
+        d["n"] += 1
+
+    @staticmethod
+    def _demo_estimate(m: dict) -> tuple[str | None, float | None]:
+        """Visit estimate: ("F" | "M" | None, age | None). Unknown unless the evidence is clear."""
+        d = m.get("demo")
+        if not d:
+            return None, None
+        gender = None
+        if d["fw"] >= DEMO_MIN_GENDER_W:
+            p = d["f"] / d["fw"]
+            gender = "F" if p >= 0.5 + DEMO_GENDER_MARGIN else "M" if p <= 0.5 - DEMO_GENDER_MARGIN else None
+        age = d["a"] / d["aw"] if d["aw"] >= DEMO_MIN_AGE_W else None
+        return gender, age
 
     def _number(self, t: Track) -> None:
         if "n" not in t.meta:
@@ -505,6 +584,7 @@ class AnalyticsEngine:
         self._pending_crossings = [c for c in self._pending_crossings if c[1] is not t]
         for c in mine:
             self._emit_crossing(*c)
+        self.setup.track_ended(t)
         if t.meta.get("phantom"):
             return
         if self.cfg.zones_of("entrance"):
@@ -543,6 +623,7 @@ class AnalyticsEngine:
             "abandoned": int(abandoned),
             "zones": json.dumps({zid: round(st.get("total", 0.0), 1) for zid, st in zones.items()
                                  if st.get("total", 0.0) >= 1.0}),
+            **self._visit_demo(m, is_staff),
         })
 
     # ------------------------------------------------------------- live state
@@ -599,6 +680,7 @@ class AnalyticsEngine:
             "coat": round(t.meta.get("coat_score", 0.0), 2),
             "seen_s": round(t.meta.get("seen_s", 0.0), 1),
             "n": t.meta.get("n"),  # n-th customer of the day
+            **self._live_demo(t.meta),
             "in_s": round(ts - t.meta.get("shown_ts", t.first_ts), 1),  # time in the shop so far
             "zone": _zone_now(t),
             "wait": (round(ts - t.meta["queue_start"], 1)

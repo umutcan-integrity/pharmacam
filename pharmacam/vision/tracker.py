@@ -118,6 +118,7 @@ class Track:
     kf: KalmanBox | None = field(default=None, repr=False)
     pred_ts: float | None = field(default=None, repr=False)  # time the filter was last advanced to
     full_h: float | None = field(default=None, repr=False)  # height when last seen whole
+    attrs: dict | None = field(default=None, repr=False)  # estimates that came with the last detection
     motion: deque = field(default_factory=lambda: deque(maxlen=24), repr=False)  # (ts, foot) samples
 
     def __post_init__(self) -> None:
@@ -178,6 +179,7 @@ class Track:
         self.kf.update(z, noise_scale=4.0 if low else 1.0)
         self.box = self.kf.box
         self.obs_box = det.box
+        self.attrs = getattr(det, "attrs", None)
         self.score = det.score
         self.last_ts = ts
         self.hits += 1

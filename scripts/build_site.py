@@ -99,6 +99,7 @@ def main() -> None:
     info = client.get("/api/info").json()
     info["live_view"] = True
     info["blur_people"] = False
+    info["demographics"] = True
     (DATA / (api_key("/api/info") + ".json")).write_text(json.dumps(info, ensure_ascii=False))
     demo_days = info["days"]
     print(f"demo günü: {today}, {len(demo_days)} gün veri")
@@ -112,6 +113,7 @@ def main() -> None:
     for n in (1, 7, 30):
         rng = {"start": timeutil.shift_day(today, -(n - 1)), "end": today}
         save("/api/zones/stats", rng)
+        save("/api/demographics", rng)
         save("/api/heatmap", rng, ".png")
     save("/api/forecast", {"days": 7})
     save("/api/reports")

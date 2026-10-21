@@ -21,6 +21,15 @@ import numpy as np
 from .. import timeutil
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS audits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    started_at REAL NOT NULL,
+    ended_at REAL,
+    day TEXT,
+    taps TEXT,
+    result TEXT,
+    note TEXT
+);
 CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT
@@ -41,7 +50,10 @@ CREATE TABLE IF NOT EXISTS visits (
     service_s REAL,
     served INTEGER NOT NULL DEFAULT 0,
     abandoned INTEGER NOT NULL DEFAULT 0,
-    zones TEXT
+    zones TEXT,
+    gender TEXT,
+    age REAL,
+    demo_n INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_visits_day ON visits(day);
 
@@ -122,6 +134,14 @@ class Store:
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA synchronous=NORMAL")
         self.conn.executescript(SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Add columns introduced after a device was installed (SQLite has no IF NOT EXISTS for columns)."""
+        have = {r["name"] for r in self.conn.execute("PRAGMA table_info(visits)").fetchall()}
+        for col, decl in (("gender", "TEXT"), ("age", "REAL"), ("demo_n", "INTEGER")):
+            if col not in have:
+                self.conn.execute(f"ALTER TABLE visits ADD COLUMN {col} {decl}")
 
     # ------------------------------------------------------------- helpers
     def _exec(self, sql: str, args: Iterable[Any] = ()) -> sqlite3.Cursor:

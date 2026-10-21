@@ -21,7 +21,7 @@ WEEKDAY_SCALE = [1.05, 1.0, 0.95, 1.0, 1.12, 0.85, 0.0]  # Mon..Sun (Sunday clos
 BASE_SCALE = 0.6  # ~450-650 customers on a weekday: a busy neighbourhood pharmacy
 MERGE_APPEND = {
     "visits": "uid,day,hour,started_at,ended_at,duration_s,is_staff,coat_score,entered,exited,queue_wait_s,"
-              "service_s,served,abandoned,zones",
+              "service_s,served,abandoned,zones,gender,age,demo_n",
     "minutes": "ts,day,hour,entries,exits,staff_entries,occupancy_avg,occupancy_max,visible_avg,queue_avg,"
                "queue_max,staff_avg,served,wait_sum,samples",
     "events": "ts,day,type,track_uid,zone,value,payload",

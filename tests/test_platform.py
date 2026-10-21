@@ -196,3 +196,48 @@ def test_model_download_is_verified(tmp_path, monkeypatch):
         assert "sha256" in str(e)
     assert not (tmp_path / "models" / "imx500_network_yolo11n_pp.rpk").exists()
     assert models.fallback().spec.key == "ssd"
+
+
+def test_installation_assistant_endpoints(client, runtime):
+    c = client.get("/api/setup/checks").json()
+    keys = {x["key"] for x in c["checks"]}
+    assert {"camera", "zones"} <= keys and all(x["status"] in ("good", "warn", "bad", "info") for x in c["checks"])
+    d = client.get("/api/setup/door", params={"mount": "above_door"}).json()
+    assert d["preset"]["type"] == "entrance" and d["current"]["id"] == "kapi"
+    assert client.get("/api/setup/door", params={"mount": "nonsense"}).status_code == 422
+    new = {**d["preset"], "line": [[0.1, 0.9], [0.4, 0.9]]}
+    assert client.post("/api/setup/door", json=new).json()["line"] == [[0.1, 0.9], [0.4, 0.9]]
+    zones = runtime.cfg.zones
+    assert sum(z.type == "entrance" for z in zones) == 1 and len(zones) == 8  # the others were kept
+    coat = client.get("/api/setup/coat").json()
+    assert "threshold" in coat
+    assert client.post("/api/setup/coat", json={"threshold": 2}).status_code == 400
+    assert client.post("/api/setup/coat", json={"threshold": 0.3}).json()["threshold"] == 0.3
+    assert client.get("/api/demographics", params={"start": DAY, "end": DAY}).json()["visits"] == 1
+
+
+def test_count_audit_flow(client):
+    assert client.get("/api/audit").json() == {"active": False}
+    assert client.post("/api/audit/tap", json={"kind": "in"}).status_code == 409
+    st = client.post("/api/audit/start").json()
+    assert st["active"] and st["manual_in"] == 0
+    client.post("/api/audit/tap", json={"kind": "in"})
+    client.post("/api/audit/tap", json={"kind": "in"})
+    st = client.post("/api/audit/tap", json={"kind": "in", "undo": True}).json()
+    assert st["manual_in"] == 1
+    res = client.post("/api/audit/stop", json={"note": "deneme"}).json()
+    assert res["result"]["in"]["manual"] == 1 and res["result"]["in"]["missed"] == 1  # nobody actually came in
+    hist = client.get("/api/audits").json()
+    assert hist[0]["id"] == res["id"] and hist[0]["note"] == "deneme"
+
+
+def test_audit_matching_one_to_one():
+    from pharmacam.analytics.setup import audit_result
+
+    taps = [{"kind": "in", "ts": 101.0}, {"kind": "in", "ts": 105.0}, {"kind": "in", "ts": 109.0}, {"kind": "out", "ts": 130.0}]
+    events = [{"type": "entry", "ts": 102.5}, {"type": "entry", "ts": 106.0}, {"type": "entry", "ts": 140.0},
+              {"type": "exit", "ts": 131.0}]
+    r = audit_result(taps, events)
+    assert r["in"] == {"manual": 3, "system": 3, "matched": 2, "missed": 1, "extra": 1,
+                       "count_accuracy": 100.0, "event_accuracy": 66.7}
+    assert r["out"]["matched"] == 1 and r["overall"] == 75.0

@@ -15,6 +15,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -31,6 +33,7 @@ EDITABLE_SETTINGS = {
     "staff": {"enabled", "white_ratio_threshold", "staff_zone_ratio"},
     "analytics": {"occupancy_mode", "min_zone_dwell_seconds", "min_queue_seconds"},
     "server": {"live_view", "blur_people"},
+    "demographics": {"enabled", "show_live"},
     "reports": {"opening_hour", "closing_hour"},
     "device": {"pharmacy_name"},
 }
@@ -78,6 +81,7 @@ def create_app(rt) -> FastAPI:
             "today": timeutil.today(),
             "live_view": bool(cfg["server"]["live_view"]),
             "blur_people": bool(cfg["server"]["blur_people"]),
+            "demographics": bool(cfg["demographics"]["enabled"]),
             "model": rt.health()["model"],
             "opening_hour": cfg["reports"]["opening_hour"],
             "closing_hour": cfg["reports"]["closing_hour"],
@@ -231,6 +235,12 @@ def create_app(rt) -> FastAPI:
     def queue(day: str | None = Query(None, pattern=DAY_RE)):
         return q.queue_analysis(store, day_or_today(day))
 
+    @app.get("/api/demographics", tags=["Müşteri profili"], dependencies=[Depends(auth)])
+    def demographics(start: str | None = Query(None, pattern=DAY_RE), end: str | None = Query(None, pattern=DAY_RE)):
+        """Estimated gender split and age bands of customers (only visits with a clear estimate)."""
+        s, e = range_or_default(start, end, 7)
+        return q.demographics(store, s, e)
+
     @app.get("/api/staff", tags=["Personel"], dependencies=[Depends(auth)])
     def staff(day: str | None = Query(None, pattern=DAY_RE)):
         return q.staff_summary(store, day_or_today(day))
@@ -345,6 +355,142 @@ def create_app(rt) -> FastAPI:
         engine.min_queue = float(cfg["analytics"]["min_queue_seconds"])
         cfg.save()
         return get_settings()
+
+    # ------------------------------------------------------ installation
+    from ..analytics.setup import SetupMonitor, audit_result
+
+    @app.get("/api/setup/checks", tags=["Kurulum"], dependencies=[Depends(auth)])
+    def setup_checks():
+        """Live installation checks (camera, model, light, focus, detection quality, tilt, zones)."""
+        return {"checks": engine.setup.checks(cfg, rt.health()), "light": engine.setup.light,
+                "people_seen": engine.setup.people_seen}
+
+    def _entrance():
+        z = next((z for z in cfg.zones if z.type == "entrance"), None)
+        return z.to_dict() if z else None
+
+    @app.get("/api/setup/door", tags=["Kurulum"], dependencies=[Depends(auth)])
+    def setup_door(mount: str = Query("above_door", pattern="^(above_door|facing_door|corner)$")):
+        """A door line for this mounting, and one learnt from where people come and go."""
+        return {"preset": SetupMonitor.preset_door(mount), "learnt": engine.setup.learnt_door(), "current": _entrance()}
+
+    @app.post("/api/setup/door", tags=["Kurulum"], dependencies=[Depends(auth)])
+    def setup_door_apply(zone: dict[str, Any] = Body(...)):
+        """Replace the entrance line (other zones stay as they are)."""
+        zone = {**zone, "type": "entrance"}
+        try:
+            cfg.set_zones([z.to_dict() for z in cfg.zones if z.type != "entrance"] + [zone])
+        except (ValueError, KeyError, TypeError) as e:
+            raise HTTPException(400, str(e))
+        cfg.save()
+        engine.reload_zones()
+        return _entrance()
+
+    @app.get("/api/setup/coat", tags=["Kurulum"], dependencies=[Depends(auth)])
+    def setup_coat():
+        """Coat scores of the people behind the counter now and of today's customers → a threshold."""
+        snap = engine.snapshot()
+        staff_zone = [z for z in cfg.zones if z.type == "staff"]
+        from ..vision.geometry import point_in_polygon
+
+        behind = [t["coat"] for t in snap["tracks"]
+                  if any(point_in_polygon(tuple(t["foot"]), z.polygon) for z in staff_zone)]
+        cust = [r["coat_score"] for r in store.query(
+            "SELECT coat_score FROM visits WHERE day=? AND is_staff=0 AND coat_score IS NOT NULL", (timeutil.today(),))]
+        sugg = None
+        if behind:
+            lo = float(np.percentile(behind, 25))
+            hi = float(np.percentile(cust, 95)) if len(cust) >= 5 else 0.1
+            sugg = round(min(0.6, max(0.12, (lo + hi) / 2 if lo > hi else lo * 0.8)), 2)
+        return {"behind_counter": [round(c, 2) for c in behind], "customers_p95": round(float(np.percentile(cust, 95)), 2)
+                if len(cust) >= 5 else None, "customers": len(cust), "threshold": cfg["staff"]["white_ratio_threshold"],
+                "suggested": sugg}
+
+    @app.post("/api/setup/coat", tags=["Kurulum"], dependencies=[Depends(auth)])
+    def setup_coat_apply(body: dict[str, float] = Body(...)):
+        thr = float(body.get("threshold", 0))
+        if not 0.05 <= thr <= 0.95:
+            raise HTTPException(400, "eşik 0,05 ile 0,95 arasında olmalı")
+        cfg["staff"]["white_ratio_threshold"] = round(thr, 2)
+        engine.staff.threshold = cfg["staff"]["white_ratio_threshold"]
+        cfg.save()
+        return {"threshold": cfg["staff"]["white_ratio_threshold"]}
+
+    @app.get("/api/setup/statics", tags=["Kurulum"], dependencies=[Depends(auth)])
+    def setup_statics():
+        """Places recognised as posters/mannequins (people there are not counted)."""
+        return engine._static
+
+    @app.delete("/api/setup/statics", tags=["Kurulum"], dependencies=[Depends(auth)])
+    def setup_statics_clear():
+        engine._static = []
+        engine._save_static()
+        return []
+
+    # count audit: the installer taps every real person in/out, the system's counts are matched
+    audit = {"id": None, "started_at": None, "taps": []}
+
+    def _audit_events(t0: float, t1: float) -> list[dict]:
+        rows = store.query("SELECT ts, type, payload FROM events WHERE ts BETWEEN ? AND ? AND type IN ('entry','exit')",
+                           (t0 - 1.0, t1))
+        return [r for r in rows if '"staff": true' not in (r["payload"] or "")]
+
+    def _audit_state() -> dict[str, Any]:
+        if audit["id"] is None:
+            return {"active": False}
+        ev = _audit_events(audit["started_at"], time.time())
+        return {"active": True, "id": audit["id"], "started_at": audit["started_at"],
+                "manual_in": sum(t["kind"] == "in" for t in audit["taps"]),
+                "manual_out": sum(t["kind"] == "out" for t in audit["taps"]),
+                "system_in": sum(e["type"] == "entry" for e in ev), "system_out": sum(e["type"] == "exit" for e in ev)}
+
+    @app.get("/api/audit", tags=["Kurulum"], dependencies=[Depends(auth)])
+    def audit_current():
+        return _audit_state()
+
+    @app.post("/api/audit/start", tags=["Kurulum"], dependencies=[Depends(auth)])
+    def audit_start():
+        if audit["id"] is None:
+            t0 = time.time()
+            cur = store._exec("INSERT INTO audits(started_at, day) VALUES(?, ?)", (t0, timeutil.day_str(t0)))
+            audit.update(id=cur.lastrowid, started_at=t0, taps=[])
+        return _audit_state()
+
+    @app.post("/api/audit/tap", tags=["Kurulum"], dependencies=[Depends(auth)])
+    def audit_tap(body: dict[str, Any] = Body(...)):
+        if audit["id"] is None:
+            raise HTTPException(409, "Önce testi başlatın")
+        kind = body.get("kind")
+        if kind not in ("in", "out"):
+            raise HTTPException(400, "kind: in | out")
+        if body.get("undo"):
+            for i in range(len(audit["taps"]) - 1, -1, -1):
+                if audit["taps"][i]["kind"] == kind:
+                    del audit["taps"][i]
+                    break
+        else:
+            audit["taps"].append({"kind": kind, "ts": time.time()})
+        return _audit_state()
+
+    @app.post("/api/audit/stop", tags=["Kurulum"], dependencies=[Depends(auth)])
+    def audit_stop(body: dict[str, Any] = Body(default={})):
+        if audit["id"] is None:
+            raise HTTPException(409, "Süren test yok")
+        t1 = time.time()
+        res = audit_result(audit["taps"], _audit_events(audit["started_at"], t1))
+        store._exec("UPDATE audits SET ended_at=?, taps=?, result=?, note=? WHERE id=?",
+                    (t1, json.dumps(audit["taps"]), json.dumps(res), str(body.get("note", ""))[:200], audit["id"]))
+        out = {"id": audit["id"], "started_at": audit["started_at"], "ended_at": t1, "result": res}
+        audit.update(id=None, started_at=None, taps=[])
+        return out
+
+    @app.get("/api/audits", tags=["Kurulum"], dependencies=[Depends(auth)])
+    def audits():
+        rows = store.query("SELECT id, started_at, ended_at, day, result, note FROM audits WHERE ended_at IS NOT NULL "
+                           "ORDER BY id DESC LIMIT 30")
+        for r in rows:
+            r["result"] = json.loads(r["result"]) if r["result"] else None
+        return rows
 
     # ---------------------------------------------------------- dashboard
     @app.get("/", include_in_schema=False, dependencies=[Depends(auth)])

@@ -64,6 +64,15 @@ DEFAULTS: dict[str, Any] = {
         "min_visit_seconds": 2.0,
         "empty_reset_seconds": 90,
     },
+    "demographics": {
+        # age / gender estimation, on the device, from the picture of each customer (never stored);
+        # only per-visit estimates and daily totals are kept. Mention it in the privacy notice.
+        "enabled": False,
+        "show_live": False,  # show the estimate on the live view's person tag
+        "model": "auto",  # see vision/demographics.py
+        "max_rate": 4.0,  # analyses per second at most (CPU budget)
+        "interval_s": 0.7,  # look at the same person at most this often
+    },
     "storage": {
         "path": "data/pharmacam.db",
         "retention_days": 400,

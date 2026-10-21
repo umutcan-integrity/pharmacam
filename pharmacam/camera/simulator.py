@@ -60,6 +60,9 @@ class Agent:
     served_by: int | None = None
     done: bool = False
     spot: int | None = None
+    female: bool = False
+    age: float = 40.0
+    shows_face: bool = True  # some customers never turn their face to the camera
 
 
 class PharmacySim:
@@ -86,6 +89,10 @@ class PharmacySim:
         r = self.rng
         a = Agent(self._new_id(), False, [DOOR_OUT[0] + r.uniform(-0.06, 0.06), DOOR_OUT[1]],
                   r.choice(CUSTOMER_COLORS), speed=r.uniform(0.09, 0.15))
+        # a neighbourhood pharmacy: a little more women, all ages, most between 25 and 70
+        a.female = r.random() < 0.6
+        a.age = min(88.0, max(8.0, r.choice([r.gauss(33, 8), r.gauss(52, 10), r.gauss(70, 8)])))
+        a.shows_face = r.random() < 0.7
         plan: list[tuple] = [("go", DOOR_IN[0] + r.uniform(-0.04, 0.04), DOOR_IN[1])]
         shelves = list(SHELVES)
         r.shuffle(shelves)
@@ -215,6 +222,21 @@ class PharmacySim:
         w = h * 0.36
         return (x - w / 2, y - h, x + w / 2, y)
 
+    def _estimate(self, a: Agent) -> dict | None:
+        """What an age/gender analyser would say this frame: now and then a face (age and gender,
+        mostly right), more often only the figure (gender, less sure), usually nothing."""
+        r = self.rng
+        u = r.random()
+        if u < 0.03 and a.shows_face:  # a clear look at the face
+            right = r.random() < 0.94
+            p = r.uniform(0.75, 0.97) if right else r.uniform(0.15, 0.45)
+            return {"female": p if a.female else 1 - p, "age": max(5.0, a.age + r.gauss(0, 6.5)), "w": 1.0}
+        if u < 0.08:  # only the figure, from behind or the side
+            right = r.random() < 0.85
+            p = r.uniform(0.6, 0.9) if right else r.uniform(0.2, 0.45)
+            return {"female": p if a.female else 1 - p, "w": 0.35}
+        return None
+
     def detections(self) -> list[Detection]:
         r = self.rng
         dets = []
@@ -227,7 +249,7 @@ class PharmacySim:
             box = tuple(min(1.0, max(0.0, v)) for v in box)
             if box[3] - box[1] < 0.03:
                 continue
-            dets.append(Detection(box, r.uniform(0.62, 0.95)))
+            dets.append(Detection(box, r.uniform(0.62, 0.95), attrs=None if a.staff else self._estimate(a)))
         if r.random() < 0.01:
             x, y = r.uniform(0.1, 0.9), r.uniform(0.3, 0.9)
             dets.append(Detection((x - 0.03, y - 0.1, x + 0.03, y), r.uniform(0.32, 0.45)))
