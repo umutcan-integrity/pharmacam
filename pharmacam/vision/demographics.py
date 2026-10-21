@@ -9,9 +9,10 @@ the results are picked up on a later frame (`results`). The engine averages them
                       no ──► figure alone (weight by size; seen from behind counts least)
 
 Measured on hand-labelled store footage (720p, ceiling corner, 1 925 pictures of 65 people):
-face + figure is right about gender 93 % of the time once the face is 32 px or more, the
-figure alone 88 % from the front and 70 % from behind (it then takes women in dark coats for
-men). A visit's estimate is a weighted vote and stays "unknown" when the evidence is thin.
+face + figure is right about gender 91 % of the time once the face is 32 px or more, the
+figure alone 89 % from the front and 70 % from behind — it then takes women in dark coats for
+men; with BACK_SHIFT 80 %. A visit's estimate is a weighted vote and stays "unknown" when the
+evidence is thin: it was right for 93 % of the visits it decided (two thirds of them).
 
 Nothing is stored: pictures live in memory only until they are analysed. Backends are
 pluggable (`demographics.model`); `auto` takes the most accurate one whose model files

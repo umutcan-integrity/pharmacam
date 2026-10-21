@@ -434,8 +434,10 @@ function liveDraw(now) {
       const t = queue ? mmss(p.wait + el) : p.inS != null ? mmss(p.inS + el) : "";
       // estimated gender / age when the installer shows them: "K 34", "E", "38"
       const dtx = [p.g === "F" ? "K" : p.g === "M" ? "E" : "", p.age != null ? String(p.age) : ""].filter(Boolean).join(" ");
-      const demo = dtx ? `<span class="d">${dtx}</span>` : "";
-      const dw = dtx ? 13 * ts + textW(dtx, `600 ${11 * ts}px ${SYS}`) : 0;
+      // a dot in the profile charts' colours: amber = woman, light grey = man
+      const dot = p.g === "F" || p.g === "M" ? `<i class="${p.g === "F" ? "f" : "m"}"></i>` : "";
+      const demo = dtx ? `<span class="d">${dot}${dtx}</span>` : "";
+      const dw = dtx ? 13 * ts + (dot ? 10 * ts : 0) + textW(dtx, `600 ${11 * ts}px ${SYS}`) : 0;
       if (p.n != null) {
         html = `<span class="num">${p.n}</span><span class="t">${queue ? CLOCK : ""}${t}</span>${demo}`; cls = `ptag${queue ? " queue" : ""}`;
         w = (3 + 6 + 10 + 1) * ts + Math.max(18 * ts, textW(String(p.n), fnum) + 10 * ts) + textW(t, ftxt) + (queue ? 15 * ts : 0) + dw;
@@ -863,9 +865,12 @@ async function loadVisits() {
   $("#v-csv").href = DEMO ? "#" : apiUrl("/api/export/visits.csv", { start: day, end: day });
   const names = Object.fromEntries((S.info.zones || []).map((z) => [z.id, z.name]));
   const yes = (v) => (v ? "✓" : "—");
-  $("#tb-visits").innerHTML = `<thead><tr><th>Takip no</th><th>Başlangıç</th><th class="num">Süre</th><th>Tür</th><th>Giriş</th><th>Çıkış</th><th class="num">Sıra bekleme</th><th class="num">Hizmet</th><th>Bölgeler</th></tr></thead><tbody>` +
-    (rows.map((v) => `<tr><td class="muted">${esc(v.uid.split("-")[1])}</td><td>${timeOf(v.started_at)}</td><td class="num">${fmtDur(v.duration_s)}</td><td>${v.is_staff ? '<span class="pill staff">Personel</span>' : '<span class="pill">Müşteri</span>'}</td><td>${yes(v.entered)}</td><td>${yes(v.exited)}</td><td class="num">${v.abandoned ? `${fmtDur(v.queue_wait_s)} (vazgeçti)` : fmtDur(v.queue_wait_s)}</td><td class="num">${fmtDur(v.service_s)}</td><td>${Object.entries(v.zones).map(([k, s]) => `${esc(names[k] || k)} ${Math.round(s)}sn`).join(", ")}</td></tr>`).join("")
-      || `<tr><td colspan="9" class="muted">Kayıt yok.</td></tr>`) + "</tbody>";
+  const demo = !!S.info.demographics;  // estimated gender / age of the visit, when the feature is on
+  const prof = (v) => (v.is_staff ? "" : [v.gender === "F" ? "Kadın" : v.gender === "M" ? "Erkek" : "", v.age != null ? `~${Math.round(v.age)}` : ""]
+    .filter(Boolean).join(" · ") || '<span class="muted">belirsiz</span>');
+  $("#tb-visits").innerHTML = `<thead><tr><th>Takip no</th><th>Başlangıç</th><th class="num">Süre</th><th>Tür</th>${demo ? "<th>Profil (tahmini)</th>" : ""}<th>Giriş</th><th>Çıkış</th><th class="num">Sıra bekleme</th><th class="num">Hizmet</th><th>Bölgeler</th></tr></thead><tbody>` +
+    (rows.map((v) => `<tr><td class="muted">${esc(v.uid.split("-")[1])}</td><td>${timeOf(v.started_at)}</td><td class="num">${fmtDur(v.duration_s)}</td><td>${v.is_staff ? '<span class="pill staff">Personel</span>' : '<span class="pill">Müşteri</span>'}</td>${demo ? `<td>${prof(v)}</td>` : ""}<td>${yes(v.entered)}</td><td>${yes(v.exited)}</td><td class="num">${v.abandoned ? `${fmtDur(v.queue_wait_s)} (vazgeçti)` : fmtDur(v.queue_wait_s)}</td><td class="num">${fmtDur(v.service_s)}</td><td>${Object.entries(v.zones).map(([k, s]) => `${esc(names[k] || k)} ${Math.round(s)}sn`).join(", ")}</td></tr>`).join("")
+      || `<tr><td colspan="${demo ? 10 : 9}" class="muted">Kayıt yok.</td></tr>`) + "</tbody>";
 }
 
 /* -------------------------------------------------------------- reports */

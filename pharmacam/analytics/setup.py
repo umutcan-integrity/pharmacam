@@ -89,6 +89,16 @@ class SetupMonitor:
         else:
             add("camera", "Kamera ve analiz hızı", "good" if fps >= 12 else "warn", f"{fps:.0f} kare/sn",
                 "" if fps >= 12 else "Analiz yavaş: Pi ısınıyor olabilir (soğutucu/fan) ya da başka bir yük var.")
+        sysst = health.get("system") or {}
+        if "undervoltage_now" in sysst:  # Raspberry Pi only
+            if sysst["undervoltage_now"]:
+                add("power", "Güç kaynağı", "bad", "voltaj şu an düşük",
+                    "Adaptör yetersiz: resmi 27 W (5,1 V / 5 A) Raspberry Pi USB-C adaptörünü kullanın.")
+            elif sysst.get("undervoltage_seen"):
+                add("power", "Güç kaynağı", "warn", "açılıştan beri düşük voltaj görüldü",
+                    "Yoğun anlarda voltaj düşmüş: resmi 27 W (5,1 V / 5 A) USB-C adaptör ve kısa, kaliteli kablo kullanın.")
+            else:
+                add("power", "Güç kaynağı", "good", "normal")
         m = health.get("model") or {}
         if m:
             add("model", "Yapay zekâ modeli", "warn" if m.get("fallback") else "good", m.get("title", "?"),

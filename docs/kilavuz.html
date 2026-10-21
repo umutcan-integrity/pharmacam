@@ -517,6 +517,18 @@ Simülatörün bildiği gerçek kapı geçişleri ile sistemin ölçtüğü değ
 </table>
 <p class="small">Simülasyonda tespitlerin %3'ü rastgele kaçırılır ve kutulara gürültü eklenir. Gerçek eczanede doğruluk; kamera konumuna, ışığa ve kalabalığa bağlıdır.
 Pilot kurulumda ilk hafta elle sayımla karşılaştırma yapılması önerilir (hedef ≥ %95).</p>
+<h2>Yaş ve cinsiyet tahmini</h2>
+<p>Model: <b>MiVOLO v2</b> — yüzü ve bedeni birlikte değerlendiren bir görüntü dönüştürücüsü (384×384, Apache-2.0). Cihazın işlemcisinde, kamera döngüsünü hiç bekletmeden arka planda çalışır: kişiler sırayla analiz edilir (en az bakılan önce, her kişinin yalnızca son görüntüsü); Raspberry Pi 5'te kişi başı yaklaşık <b>1,3 sn</b> (2 çekirdek, int8). Yüzü 32 pikselden büyük görünen kişide yüz ve beden birlikte, değilse yalnızca beden değerlendirilir. Arkadan görülen kişi en az ağırlığı alır ve 3 analizden sonra yüzünü dönmesi beklenir. Ziyaretin sonucu bütün analizlerin ağırlıklı oylamasıdır; kanıt zayıfsa ya da oylar kararsızsa (%30–70 arası) sonuç <b>belirsiz</b> kalır.</p>
+<table>
+<tr><th>Ölçüm: elle etiketlenmiş mağaza videosu (720p, tavan köşesi, 65 kişi izi, 1 925 görüntü)</th><th style="width:22%">Cinsiyet doğruluğu</th></tr>
+<tr><td>Yüz ≥ 32 px — yüz ve beden birlikte</td><td>%91</td></tr>
+<tr><td>Yalnızca beden, kişi kameraya dönük</td><td>%89</td></tr>
+<tr><td>Yalnızca beden, kişi arkasını dönmüş (düzeltmeli)</td><td>%80</td></tr>
+<tr><td><b>Ziyaret sonucu</b> (karar verilen ziyaretler; ziyaretlerin %66'sında karar verildi; erkeklerin hepsi doğru, 3 hata arkadan görülen kadınlarda)</td><td><b>%93</b></td></tr>
+<tr><td>Karşılaştırma: yalnızca yüzden tahmin eden önceki model (InsightFace)</td><td>%47</td></tr>
+</table>
+<p class="small">Yaş: ziyaret düzeyinde ortalama mutlak hata ~10 yıl, medyan 5 yıl (karşılaştırılan etiketler de göz kararıdır). Videodaki yüzler 18–45 piksel; Pi kamerası 1280×960 çözünürlükte 3–4 m uzaklıktaki yüzleri 30–45 px görür, kapıya yaklaşanları daha büyük. Doğruluk kameranın yüzleri görme açısına bağlıdır: Kurulum sekmesindeki "Yüz görünürlüğü" satırı bunu gösterir. Tahmin tek bir kişi hakkında karar vermek için değil, toplu istatistik içindir.</p>
+
 <div class="keep"><h2>Kalibrasyon</h2>
 <table>
 <tr><th style="width:36%">Belirti</th><th>Ayar</th></tr>

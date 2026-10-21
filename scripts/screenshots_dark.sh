@@ -20,3 +20,5 @@ shot dark-sira "day=$DAY#queue" 900
 shot dark-isi "days=7#heatmap" 900
 shot dark-tahmin "#forecast" 900
 shot dark-bolgeler "#zones" 900
+shot dark-profil "days=30#profile" 900
+shot dark-kurulum "#setup" 900

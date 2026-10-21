@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
 import threading
 import time
 from pathlib import Path
@@ -199,8 +200,28 @@ class Runtime:
         self.engine.flush()
 
 
+_THROTTLED = {"t": -1e9, "v": None}
+
+
+def _throttled() -> int | None:
+    """Raspberry Pi firmware flags (vcgencmd get_throttled), read at most every 10 s; None elsewhere."""
+    now = time.monotonic()
+    if now - _THROTTLED["t"] > 10:
+        _THROTTLED["t"] = now
+        try:
+            out = subprocess.run(["vcgencmd", "get_throttled"], capture_output=True, text=True, timeout=2).stdout
+            _THROTTLED["v"] = int(out.strip().split("=")[1], 16)
+        except Exception:  # not a Pi, or no firmware tools
+            _THROTTLED["v"] = None
+    return _THROTTLED["v"]
+
+
 def system_stats() -> dict:
     out: dict = {}
+    t = _throttled()
+    if t is not None:  # bit 0: under-voltage now, 16: since boot, 18: slowed down since boot
+        out["undervoltage_now"], out["undervoltage_seen"] = bool(t & 0x1), bool(t & 0x10000)
+        out["throttled_seen"] = bool(t & 0x40000)
     try:
         out["cpu_temp_c"] = round(int(Path("/sys/class/thermal/thermal_zone0/temp").read_text()) / 1000, 1)
     except Exception:

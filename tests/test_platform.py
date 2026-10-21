@@ -257,3 +257,15 @@ def test_setup_checks_report_the_age_gender_model(tmp_path):
     assert rows["faces"]["status"] == "warn"  # 2 faces in 40 looks: people show the camera their backs
     cfg = sim_config(tmp_path, camera={"source": "imx500"}, demographics={"enabled": False})
     assert "demographics" not in {c["key"] for c in mon.checks(cfg, health)}
+
+
+def test_setup_checks_warn_about_a_weak_power_supply(tmp_path):
+    from pharmacam.analytics.setup import SetupMonitor
+
+    cfg = sim_config(tmp_path)
+    rows = lambda system: {c["key"]: c for c in SetupMonitor().checks(cfg, {"camera_ok": True, "fps": 15,  # noqa: E731
+                                                                              "system": system})}
+    assert "power" not in rows({})  # not a Raspberry Pi
+    assert rows({"undervoltage_now": False, "undervoltage_seen": False})["power"]["status"] == "good"
+    assert rows({"undervoltage_now": False, "undervoltage_seen": True})["power"]["status"] == "warn"
+    assert rows({"undervoltage_now": True, "undervoltage_seen": True})["power"]["status"] == "bad"

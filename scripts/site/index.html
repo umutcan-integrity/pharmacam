@@ -821,6 +821,8 @@ const shots = [
   ["Isı haritası", "dark-isi.png", "Müşterilerin en çok vakit geçirdiği alanlar."],
   ["Tahmin", "dark-tahmin.png", "7 günlük saatlik müşteri tahmini ve tezgâh personeli önerisi."],
   ["Bölgeler", "dark-bolgeler.png", "Kapıyı, sırayı, tezgâhı ve rafları kamera görüntüsünün üzerine fareyle çizin."],
+  ["Müşteri profili", "dark-profil.png", "Tahmini yaş grupları ve kadın/erkek dağılımı, saat saat. Emin olunamayan ziyaretler belirsiz kalır."],
+  ["Kurulum", "dark-kurulum.png", "Işık, netlik ve açı kontrolü; kapı çizgisi önerisi ve elle sayımla kişi kişi doğruluk testi."],
 ];
 const tabs = document.getElementById("gtabs"), stage = document.getElementById("gstage"), cap = document.getElementById("gcap");
 stage.innerHTML = shots.map(([n, f]) => `<img src="assets/${f}" alt="PharmaCam ${n} ekranı" loading="lazy">`).join("");

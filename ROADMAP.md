@@ -52,7 +52,21 @@ kutuları takip eder, analiz eder ve veriyi saklar. **Görüntü kaydedilmez, y�
 - [x] Tek komutla kurulum betiği (`deploy/install.sh`)
 - [x] Görselli PDF kurulum kılavuzu (`docs/PharmaCam-Kurulum-Kilavuzu.pdf`)
 
+## Faz 3.5 — Doğruluk ve müşteri profili ✅ (2026-10-21)
+- [x] Takip v2: Kalman + üç aşamalı Hungarian + son görüldüğü yerden yakalama (simülatörde Roboflow/Sony ByteTrack ile kıyaslandı)
+- [x] Poster/manken eleme, "yok say" bölgesi, günlük müşteri sıra no, kıyafet rengiyle etiket koruma (yalnız 30 sn, yalnız etiket)
+- [x] Cam tasarımlı canlı görünüm: kamera modunda kutu + etiket, görüntüsüz modda plan üzerinde nokta
+- [x] Kurulum asistanı: ışık, netlik, eğim, tespit güveni, güç kaynağı, kapı çizgisi önerisi, önlük ölçümü
+- [x] Sayım doğruluğu testi: telefondan elle sayım, kişi kişi (±6 sn) eşleştirme, kayıtlı sonuç
+- [x] Yaş/cinsiyet (isteğe bağlı, varsayılan kapalı): MiVOLO v2 yüz + beden, int8, Pi 5'te kişi başı ~1,3 sn;
+      elle etiketlenmiş videoda yüz ≥32 px'te cinsiyet %93; ziyaret başına oylama, emin değilse "belirsiz"
+
 ## Faz 4 — Saha pilotu (sıradaki)
+- [ ] Yaş/cinsiyet: gerçek eczane görüntüsünde ~300 etiketli ziyaretle kalibrasyon (rıza alınmış), sonuçların
+      karışıklık matrisiyle düzeltilmesi; başörtüsü/şapka, 60+ yaş ayrıca ölçülmeli
+- [ ] Yaş/cinsiyet için kesitleri 2028×1520 akıştan almak (yüzler 1,6 kat büyür; CPU etkisi ölçülmeli)
+- [ ] Hub: müşteri profili (cinsiyet/yaş) senkronu ve şube karşılaştırması
+- [ ] Hukuki görüş: KVKK'da şablonsuz yaş/cinsiyet tahmininin dayanağı (m.5/2-f mi, açık rıza mı)
 - [ ] İlk eczanede 2 hafta pilot; kapı sayımının elle sayımla karşılaştırılması (hedef ≥ %95)
 - [ ] Önlük eşiğinin eczane ışığına göre kalibrasyonu (panelden ayarlanabilir)
 - [ ] Tavan montaj aparatı (3D baskı) ve kablo kanalı
@@ -63,6 +77,8 @@ kutuları takip eder, analiz eder ve veriyi saklar. **Görüntü kaydedilmez, y�
 - [ ] Eczaneye özel model: gerçek eczane görüntüleriyle (yukarıdan bakış) yeniden eğitilmiş, yalnızca
       kişi tanıyan YOLO11n → `yolo export format=imx` (Linux x86) + `imx500-package` ile .rpk
 - [ ] Ticari lisans kararı: Ultralytics Enterprise (YOLO11n) ya da NanoDet (Apache-2.0)
+- [ ] Yaş/cinsiyet modeli lisansı: MiVOLO v2 (model kartı Apache-2.0, eğitim verisi açıklanmamış) ya da
+      Intel Open Model Zoo (Apache-2.0) / kendi modelimiz (FairFace + rızalı eczane görüntüleri)
 - [ ] Sahada doğruluk denetimi: yüzlerce kapı geçişi elle sayılıp sistemle karşılaştırılır
 - [ ] Çoklu kamera (büyük eczaneler) ve kameralar arası birleşik sayım
 - [ ] Kampanya / raf değişikliği öncesi-sonrası karşılaştırma (A/B)
@@ -71,7 +87,9 @@ kutuları takip eder, analiz eder ve veriyi saklar. **Görüntü kaydedilmez, y�
 - [ ] OTA güncelleme ve cihaz filosu yönetimi
 
 ## Gizlilik ilkeleri (tasarım gereği)
-- Kişiler yalnızca **anonim, geçici takip numarasıyla** izlenir; yüz, kimlik veya biyometrik veri işlenmez.
+- Kişiler yalnızca **anonim, geçici takip numarasıyla** izlenir; yüz tanıma ve kimlik tespiti yapılmaz.
+- Yaş/cinsiyet tahmini açıksa görüntü yalnızca analiz edilene kadar bellekte durur; yüz şablonu saklanmaz,
+  yalnızca ziyaret başına tahmin ve toplamlar tutulur. Varsayılan kapalıdır.
 - Kamera görüntüsü diske **yazılmaz**. Isı haritası arka planı, içeride kimse yokken alınır.
 - Canlı görüntü panelden kapatılabilir; açıkken kişiler bulanıklaştırılabilir.
 - Saklanan veri: sayılar, süreler, bölge adları, ısı yoğunluk matrisi.
