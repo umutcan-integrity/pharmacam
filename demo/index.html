@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PharmaCam Demo Paneli</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231d1d1f'/%3E%3Cpath d='M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">✚</span>
+    <div>
+      <div class="brand-name">PharmaCam</div>
+      <div class="brand-sub" id="pharmacy-name">—</div>
+    </div>
+  </div>
+  <div class="status" id="status-pill"><span class="dot"></span><span id="status-text">Bağlanıyor…</span></div>
+</header>
+
+<nav class="tabs" id="tabs" role="tablist">
+  <button data-tab="live" class="active">Canlı</button>
+  <button data-tab="analysis">Günlük Analiz</button>
+  <button data-tab="profile">Müşteri Profili</button>
+  <button data-tab="shelves">Raflar</button>
+  <button data-tab="queue">Sıra</button>
+  <button data-tab="heatmap">Isı Haritası</button>
+  <button data-tab="forecast">Tahmin</button>
+  <button data-tab="visits">Ziyaretler</button>
+  <button data-tab="reports">Raporlar</button>
+  <button data-tab="zones">Bölgeler</button>
+  <button data-tab="setup">Kurulum</button>
+  <button data-tab="settings">Ayarlar</button>
+</nav>
+
+<main>
+  <!-- ============================== LIVE -->
+  <section id="tab-live" class="tab active">
+    <div class="tiles">
+      <div class="tile hero"><div class="label">Şu an içeride</div><div class="value" id="lv-occ">—</div><div class="sub">müşteri</div></div>
+      <div class="tile"><div class="label">Sırada bekleyen</div><div class="value" id="lv-queue">—</div><div class="sub" id="lv-queue-sub">en uzun bekleme —</div></div>
+      <div class="tile"><div class="label">Görevdeki personel</div><div class="value" id="lv-staff">—</div><div class="sub">beyaz önlüklü</div></div>
+      <div class="tile"><div class="label">Bugün giren</div><div class="value" id="lv-in">—</div><div class="sub" id="lv-in-sub">—</div></div>
+      <div class="tile"><div class="label">Bugün çıkan</div><div class="value" id="lv-out">—</div><div class="sub" id="lv-fps">—</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h2>Canlı görüntü</h2>
+          <div class="seg seg-sm" id="lv-mode" role="tablist" aria-label="Görünüm"><button data-m="cam" class="active">Kamera</button><button data-m="plan">Görüntüsüz</button></div>
+        </div>
+        <div class="live-wrap" id="live-wrap">
+          <img id="live-img" alt="Canlı kamera görüntüsü">
+          <canvas id="live-canvas" aria-hidden="true"></canvas>
+          <div id="live-layer" class="live-layer" aria-hidden="true"></div>
+          <div class="live-hud">
+            <span class="hud-pill"><i class="live-dot"></i>Canlı</span>
+            <span class="hud-pill"><b id="hud-occ">0</b> içeride</span>
+            <span class="hud-pill"><b id="hud-q">0</b> sırada</span>
+            <span class="hud-pill"><b id="hud-st">0</b> personel</span>
+          </div>
+          <div class="live-legend"><span><i class="lg-c"></i>Müşteri</span><span><i class="lg-s"></i>Personel</span><span class="muted" id="lv-note">görüntü kaydedilmez</span></div>
+          <div id="live-off" class="live-off hidden"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Bölgelerde şu an</h2></div>
+        <ul class="zone-live" id="zone-live"></ul>
+        <div class="card-head mt"><h2>Bugün öne çıkanlar</h2></div>
+        <ul class="insights" id="live-insights"></ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Bugün saatlik müşteri girişi</h2></div>
+      <div class="chart"><canvas id="ch-live-hourly"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ============================== ANALYSIS -->
+  <section id="tab-analysis" class="tab">
+    <div class="filters"><label>Gün <select id="an-day" class="day-select"></select></label></div>
+    <div class="tiles" id="an-tiles"></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><h2>Saatlik müşteri girişi</h2></div><div class="chart"><canvas id="ch-an-entries"></canvas></div></div>
+      <div class="card"><div class="card-head"><h2>Ortalama içerideki müşteri</h2></div><div class="chart"><canvas id="ch-an-occ"></canvas></div></div>
+    </div>
+    <div class="card"><div class="card-head"><h2>Son 30 gün — günlük müşteri</h2><span class="muted small">çubuğa tıklayarak o güne gidin</span></div><div class="chart"><canvas id="ch-an-daily"></canvas></div></div>
+    <div class="card"><div class="card-head"><h2>Otomatik değerlendirme</h2></div><ul class="insights" id="an-insights"></ul></div>
+  </section>
+
+  <!-- ============================== SHELVES -->
+  <section id="tab-shelves" class="tab">
+    <div class="filters">
+      <div class="seg" id="sh-range"><button data-days="1" class="active">Bugün</button><button data-days="7">7 gün</button><button data-days="30">30 gün</button></div>
+    </div>
+    <div class="card"><div class="card-head"><h2>Raf önünde durma ve geçme</h2><span class="muted small">duruş = en az 3 sn bekleme</span></div><div class="chart tall"><canvas id="ch-shelves"></canvas></div></div>
+    <div class="card"><div class="card-head"><h2>Raf tablosu</h2></div><div class="table-wrap"><table id="tb-shelves"></table></div></div>
+  </section>
+
+  <!-- ============================== CUSTOMER PROFILE (estimated age / gender) -->
+  <section id="tab-profile" class="tab">
+    <div class="filters">
+      <div class="seg" id="pf-range"><button data-days="1">Bugün</button><button data-days="7" class="active">7 gün</button><button data-days="30">30 gün</button></div>
+    </div>
+    <div id="pf-off" class="card empty-state hidden">
+      <h2>Yaş ve cinsiyet tahmini kapalı</h2>
+      <p class="muted">Açmak için <b>Ayarlar → Yaş ve cinsiyet tahmini</b>. Tahminler cihazın içinde yapılır, görüntü saklanmaz;
+        yalnızca ziyaret başına tahmin ve günlük toplamlar tutulur. Açmadan önce eczanenin aydınlatma metnine ekleyin (kılavuz, bölüm 14).</p>
+    </div>
+    <div class="tiles" id="pf-tiles"></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><h2>Yaş grupları</h2><span class="muted small">tahmini, ziyaretçi sayısı</span></div><div class="chart"><canvas id="ch-pf-age"></canvas></div></div>
+      <div class="card"><div class="card-head"><h2>Saatlere göre kadın ve erkek ziyaretçi</h2></div><div class="chart"><canvas id="ch-pf-hour"></canvas></div></div>
+    </div>
+    <p class="muted small pf-note">Tahminler cihazın içinde yapılır ve görüntü saklanmaz. Yüzü ya da vücudu yeterince net görülemeyen
+      ziyaretçiler "bilinmiyor" kalır ve dağılıma katılmaz; personel hiç dahil edilmez. Sonuçlar tahminidir, kişi bazında değil
+      toplu eğilim olarak yorumlayın.</p>
+  </section>
+
+  <!-- ============================== QUEUE -->
+  <section id="tab-queue" class="tab">
+    <div class="filters"><label>Gün <select id="q-day" class="day-select"></select></label></div>
+    <div class="tiles" id="q-tiles"></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><h2>Saatlik ortalama bekleme (dk)</h2></div><div class="chart"><canvas id="ch-q-hour"></canvas></div></div>
+      <div class="card"><div class="card-head"><h2>Bekleme süresi dağılımı</h2></div><div class="chart"><canvas id="ch-q-hist"></canvas></div></div>
+    </div>
+    <div class="card"><div class="card-head"><h2>Saatlik en uzun sıra (kişi)</h2></div><div class="chart"><canvas id="ch-q-max"></canvas></div></div>
+  </section>
+
+  <!-- ============================== HEATMAP -->
+  <section id="tab-heatmap" class="tab">
+    <div class="filters">
+      <div class="seg" id="hm-range"><button data-days="1" class="active">Bugün</button><button data-days="7">7 gün</button><button data-days="30">30 gün</button></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Müşteri yoğunluk haritası</h2><span class="legend-ramp"><span>az</span><i></i><span>yoğun</span></span></div>
+      <div class="heat-wrap"><img id="hm-img" alt="Mağaza ısı haritası"></div>
+      <p class="muted small">Müşterilerin ayak noktalarının bulunduğu konumda geçirdiği süre toplanır. Personel dahil edilmez.</p>
+    </div>
+  </section>
+
+  <!-- ============================== FORECAST -->
+  <section id="tab-forecast" class="tab">
+    <div class="forecast-days" id="fc-days"></div>
+    <div class="card">
+      <div class="card-head"><h2 id="fc-title">Saatlik tahmin</h2><span class="muted small" id="fc-meta"></span></div>
+      <div class="chart"><canvas id="ch-fc"></canvas></div>
+    </div>
+    <div class="card"><div class="card-head"><h2>Önerilen tezgâh personeli</h2><span class="muted small">%75 kullanım hedefiyle, ortalama hizmet süresine göre</span></div><div class="staff-row" id="fc-staff"></div></div>
+  </section>
+
+  <!-- ============================== VISITS -->
+  <section id="tab-visits" class="tab">
+    <div class="filters">
+      <label>Gün <select id="v-day" class="day-select"></select></label>
+      <label class="check"><input type="checkbox" id="v-staff"> Personeli göster</label>
+      <a class="btn ghost" id="v-csv" href="#">CSV indir</a>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Anonim ziyaret kayıtları</h2><span class="muted small">kimlik/yüz yok — yalnızca geçici takip numarası</span></div>
+      <div class="table-wrap"><table id="tb-visits"></table></div>
+    </div>
+  </section>
+
+  <!-- ============================== REPORTS -->
+  <section id="tab-reports" class="tab">
+    <div class="filters"><button class="btn" id="rep-make">Bugünün raporunu oluştur</button></div>
+    <div class="card"><div class="card-head"><h2>Günlük PDF raporları</h2><span class="muted small">her gün kapanış saatinde otomatik üretilir</span></div><ul class="reports" id="rep-list"></ul></div>
+  </section>
+
+  <!-- ============================== INSTALLATION ASSISTANT -->
+  <section id="tab-setup" class="tab">
+    <div class="card setup-intro">
+      <div>
+        <h2>Kurulum asistanı</h2>
+        <p class="muted">Kamerayı taktıktan sonra bu dört adımı sırayla yapın. Her adım, sayımın doğru olması için gereken bir
+          şeyi kontrol eder; son adım cihazın gerçek doğruluğunu ölçüp kaydeder.</p>
+      </div>
+      <ol class="setup-steps"><li><b>1</b>Montaj</li><li><b>2</b>Giriş çizgisi</li><li><b>3</b>Personel</li><li><b>4</b>Doğruluk testi</li></ol>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h2>1 · Montaj kontrolü</h2><span class="muted small"><i class="live-dot"></i> canlı</span></div>
+        <ul class="checks" id="st-checks"></ul>
+        <div class="focus-meter"><span>Odak</span><div class="meter"><i id="st-focus"></i></div><b id="st-focus-v">—</b></div>
+        <p class="muted small">Lensi yavaşça çevirin: çubuk en uzun olduğunda odak tamamdır.</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>2 · Giriş çizgisi</h2></div>
+        <div class="seg seg-sm seg-wrap" id="st-mount" role="tablist">
+          <button data-m="above_door" class="active">Kapı üstü, içeri bakıyor</button><button data-m="facing_door">Karşıdan kapıya</button><button data-m="corner">Köşede</button>
+        </div>
+        <p class="mount-tip" id="st-mount-tip"></p>
+        <div class="door-preview"><canvas id="st-door-cv"></canvas></div>
+        <p class="muted small" id="st-learnt"></p>
+        <div class="actions"><button class="btn primary" id="st-door-preset">Önerilen çizgiyi uygula</button>
+          <button class="btn" id="st-door-learnt" disabled>Gözleme göre uygula</button></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>3 · Personel (önlük) ayarı</h2></div>
+        <p class="muted">Önlüklü bir çalışan 10 saniye kasanın arkasında, kameraya görünür şekilde dursun; sonra <b>Ölç</b>'e basın.
+          Sistem önlüğün beyazlığını ölçer ve personeli müşteriden ayıracak eşiği önerir.</p>
+        <div class="actions"><button class="btn primary" id="st-coat-measure">Ölç</button>
+          <button class="btn hidden" id="st-coat-apply">Önerilen eşiği uygula</button></div>
+        <p id="st-coat-res" class="small"></p>
+      </div>
+      <div class="card audit-card">
+        <div class="card-head"><h2>4 · Sayım doğruluk testi</h2></div>
+        <p class="muted">Kapının yanında durun. Her gerçek müşteri girdiğinde <b>Giren</b>, çıktığında <b>Çıkan</b>'a basın
+          (personeli saymayın). Güvenilir bir sonuç için en az 30–50 geçiş önerilir.</p>
+        <div class="audit-pad hidden" id="st-audit-pad">
+          <button class="tap in" data-k="in"><span>Giren</span><b id="st-m-in">0</b><small>sistem: <i id="st-s-in">0</i></small></button>
+          <button class="tap out" data-k="out"><span>Çıkan</span><b id="st-m-out">0</b><small>sistem: <i id="st-s-out">0</i></small></button>
+        </div>
+        <div class="actions"><button class="btn primary" id="st-audit-start">Testi başlat</button>
+          <button class="btn hidden" id="st-audit-undo-in">Son "Giren"i geri al</button>
+          <button class="btn hidden" id="st-audit-undo-out">Son "Çıkan"ı geri al</button>
+          <button class="btn danger hidden" id="st-audit-stop">Testi bitir</button></div>
+        <div id="st-audit-result"></div>
+        <div class="table-wrap"><table id="st-audits"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== ZONES -->
+  <section id="tab-zones" class="tab">
+    <div class="zone-editor">
+      <div class="card">
+        <div class="card-head"><h2>Bölge düzenleyici</h2><span class="muted small" id="ze-hint">Bir bölge seçin veya yeni ekleyin</span></div>
+        <div class="ze-canvas-wrap"><canvas id="ze-canvas"></canvas></div>
+      </div>
+      <div class="card ze-side">
+        <div class="ze-add">
+          <select id="ze-type">
+            <option value="shelf">Raf</option><option value="queue">Sıra alanı</option><option value="service">Tezgâh (hizmet)</option>
+            <option value="staff">Tezgâh arkası (personel)</option><option value="entrance">Giriş kapısı (çizgi)</option>
+            <option value="ignore">Yok say (ayna, poster, ekran)</option>
+          </select>
+          <button class="btn" id="ze-new">+ Yeni bölge</button>
+        </div>
+        <ul class="ze-list" id="ze-list"></ul>
+        <div id="ze-form" class="ze-form hidden">
+          <label>Ad <input id="ze-name"></label>
+          <label>Kimlik <input id="ze-id"></label>
+          <p class="muted small" id="ze-help"></p>
+          <div class="row"><button class="btn ghost" id="ze-clear">Noktaları temizle</button><button class="btn danger" id="ze-del">Sil</button></div>
+        </div>
+        <button class="btn primary wide" id="ze-save">Kaydet ve uygula</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== SETTINGS -->
+  <section id="tab-settings" class="tab">
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><h2>Ayarlar</h2></div><form id="set-form" class="settings"></form><button class="btn primary" id="set-save">Kaydet</button></div>
+      <div class="card"><div class="card-head"><h2>Cihaz durumu</h2></div><dl class="health" id="health"></dl>
+        <p class="muted small">API belgeleri: <a href="docs" target="_blank" rel="noopener">/docs</a></p></div>
+    </div>
+  </section>
+</main>
+<div id="toast" class="toast hidden" role="status"></div>
+<footer class="foot">PharmaCam · eczaneler için çip üzerinde yapay zekâ · görüntü kaydedilmez</footer>
+<script src="static/vendor/chart.umd.min.js"></script>
+<script>window.PHARMACAM_DEMO = { base: "demo-data/", liveFrames: 80, home: "../" };</script>
+<script src="static/app.js"></script>
+</body>
+</html>

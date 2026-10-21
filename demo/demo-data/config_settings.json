@@ -1,0 +1,1 @@
+{"staff":{"white_ratio_threshold":0.32,"staff_zone_ratio":0.6,"enabled":true},"analytics":{"occupancy_mode":"hybrid","min_queue_seconds":4.0,"min_zone_dwell_seconds":3.0},"server":{"blur_people":false,"live_view":true},"demographics":{"show_live":true,"enabled":true},"reports":{"closing_hour":22,"opening_hour":8},"device":{"pharmacy_name":"Demo Eczanesi"}}
